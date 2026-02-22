@@ -3,10 +3,22 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from sl3_hecke import Sl3HeckeArnoldi
 import time
+import json
+import datetime
 
-def analyze_scaling(L_values, n_value):
+def analyze_scaling(L_values, n_value, output_filename="eigenvalues_log.json"):
     print(f"Starting Finite-Size Scaling Analysis for n = {n_value}")
     print("=" * 60)
+
+    # Data structure to hold results
+    results_data = {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "n_value": n_value,
+        "operator": "H = sum(e_i)",
+        "L_values": L_values,
+        "scaling_data": [],
+        "central_charge_estimate": None
+    }
 
     leading_eigenvalues = []
     f_L_values = []
@@ -34,8 +46,8 @@ def analyze_scaling(L_values, n_value):
             eigenvalues_by_L[L] = eigenvalues
 
             # Sort by magnitude descending
-            eigenvalues = sorted(eigenvalues, key=lambda x: abs(x), reverse=True)
-            Lambda_L = eigenvalues[0]
+            eigenvalues_sorted = sorted(eigenvalues, key=lambda x: abs(x), reverse=True)
+            Lambda_L = eigenvalues_sorted[0]
 
             print(f"  Leading eigenvalue (LM): {Lambda_L}")
 
@@ -51,6 +63,22 @@ def analyze_scaling(L_values, n_value):
 
             print(f"  f_L (real part): {f_L_real}")
             print(f"  Time elapsed: {time.time() - start_time:.2f}s")
+
+            # Store data for this L
+            results_data["scaling_data"].append({
+                "L": L,
+                "dim": solver.dim,
+                "leading_eigenvalue": {
+                    "real": float(np.real(Lambda_L)),
+                    "imag": float(np.imag(Lambda_L)),
+                    "magnitude": float(abs(Lambda_L))
+                },
+                "f_L_real": float(f_L_real),
+                "top_k_eigenvalues": [
+                    {"real": float(np.real(e)), "imag": float(np.imag(e))}
+                    for e in eigenvalues_sorted[:min(10, len(eigenvalues_sorted))]
+                ]
+            })
 
         except Exception as e:
             print(f"  Error processing L={L}: {e}")
@@ -76,6 +104,17 @@ def analyze_scaling(L_values, n_value):
         print(f"Slope (B): {slope_fit}")
         print(f"Intercept (f_inf): {f_inf_fit}")
         print(f"Estimated Central Charge c: {c_estimated}")
+
+        results_data["central_charge_estimate"] = {
+            "c": float(c_estimated),
+            "slope": float(slope_fit),
+            "intercept": float(f_inf_fit)
+        }
+
+        # Save to JSON file
+        with open(output_filename, 'w') as f:
+            json.dump(results_data, f, indent=4)
+        print(f"Saved eigenvalues and results to '{output_filename}'")
 
         # Plotting Scaling
         plt.figure(figsize=(10, 6))
