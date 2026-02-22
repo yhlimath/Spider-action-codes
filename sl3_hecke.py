@@ -1,8 +1,8 @@
-
 import numpy as np
 from scipy.sparse import dok_matrix, csr_matrix
-from scipy.sparse.linalg import eigs
+from scipy.linalg import eig, hessenberg, norm
 import random
+import time
 
 class Polynomial:
     def __init__(self, coeffs=None):
@@ -267,57 +267,140 @@ class Sl3HeckeArnoldi:
         self.basis_strings = generate_all_valid_strings(L)
         self.dim = len(self.basis_strings)
         self.string_to_idx = {tuple(s): i for i, s in enumerate(self.basis_strings)}
-        self.H_matrix = None
 
-    def build_matrix(self):
-        print(f"Building H matrix for L={self.L} (dim={self.dim})...")
-        mat = dok_matrix((self.dim, self.dim), dtype=complex)
+        # Caching e operations for performance (optional, but good for "by hand" iteration if repeated)
+        # But to be truly matrix-free, we shouldn't precompute matrix entries,
+        # but maybe we can cache individual e_k(s) results if memory allows.
+        # Given "H is very sparse so we do not need to know all the entries to do Arnoldi method. Rather, let's do Arnoldi 'by hand' without resorting to existing programs",
+        # I will implement applying H(v) on the fly.
+        self.e_cache = {}
 
-        # H = sum_{k=1 to 3L-1} e_k
+    def apply_H(self, v):
+        """
+        Apply H = sum e_i to a dense vector v on the fly.
+        v: numpy array of shape (dim,)
+        Returns: H * v
+        """
+        # Output vector
+        w = np.zeros(self.dim, dtype=complex)
+
+        # H is sum of e_k for k=1..3L-1
         num_generators = 3 * self.L - 1
 
+        # Iterate over non-zero elements of v?
+        # v is likely dense in Arnoldi. So iterate over all basis elements i.
+        # If v[i] is small, maybe skip? No, explicit loop over basis.
+
+        # Optimization: H is sum of e_k. Applying e_k to basis element s gives a linear combination of basis elements.
+        # w = sum_i v[i] * H(s_i)
+        #   = sum_i v[i] * sum_k e_k(s_i)
+
+        # This is essentially matrix-vector multiplication where matrix is implicit.
+        # To make this fast, we can cache the result of H(s_i).
+        # H(s_i) is a sparse vector (list of (coeff, index)).
+
         for idx, s in enumerate(self.basis_strings):
-            for k in range(1, num_generators + 1):
-                res_pairs = e([(1, s)], k)
-                for coeff, res_s in res_pairs:
-                    if isinstance(coeff, Polynomial):
-                        val = coeff.evaluate(self.n_value)
-                    else:
-                        val = coeff
+            coeff_v = v[idx]
+            if abs(coeff_v) < 1e-12: continue
 
-                    res_idx = self.string_to_idx.get(tuple(res_s))
-                    if res_idx is not None:
-                        mat[res_idx, idx] += val
+            # Apply H to s: sum_k e_k(s)
+            # Check cache
+            s_tuple = tuple(s)
+            if s_tuple in self.e_cache:
+                h_s_results = self.e_cache[s_tuple]
+            else:
+                h_s_results = [] # List of (val, target_idx)
+                for k in range(1, num_generators + 1):
+                    res_pairs = e([(1, s)], k)
+                    for c, res_s in res_pairs:
+                        if isinstance(c, Polynomial):
+                            val = c.evaluate(self.n_value)
+                        else:
+                            val = c
 
-        self.H_matrix = mat.tocsr()
-        print("Matrix build complete.")
+                        res_idx = self.string_to_idx.get(tuple(res_s))
+                        if res_idx is not None:
+                            h_s_results.append((val, res_idx))
 
-    def run_arnoldi(self, k=6, which='LM'):
-        if self.H_matrix is None:
-            self.build_matrix()
+                # Cache it? If L is large, cache might grow.
+                # For L=5, dim=6006. 6006 entries in cache. Each entry is a list of ~few terms.
+                # This is manageable.
+                self.e_cache[s_tuple] = h_s_results
 
-        print(f"Running Arnoldi method to find {k} eigenvalues...")
-        vals, vecs = eigs(self.H_matrix, k=k, which=which)
-        return vals
+            # Add contribution to w
+            for val, target_idx in h_s_results:
+                w[target_idx] += coeff_v * val
+
+        return w
+
+    def arnoldi_iteration(self, k, start_vector_idx=None):
+        """
+        Run Arnoldi iteration manually.
+        k: Number of Krylov vectors (dimension of Hessenberg matrix)
+        start_vector_idx: Index of basis string to start with (default: random or 0)
+        """
+        print(f"Running custom Arnoldi iteration (k={k})...")
+
+        # Q matrix (orthogonal basis vectors)
+        Q = np.zeros((self.dim, k + 1), dtype=complex)
+        # H matrix (Hessenberg)
+        h = np.zeros((k + 1, k), dtype=complex)
+
+        # Start vector
+        if start_vector_idx is None:
+            # Use a random basis string as requested, or just index 0
+            # "We just begin with a vector v, which is a basis_string"
+            # Random basis string index
+            start_vector_idx = random.randint(0, self.dim - 1)
+
+        print(f"Starting with basis vector index {start_vector_idx}")
+        Q[start_vector_idx, 0] = 1.0 # Normalized since it's a basis vector
+
+        for j in range(k):
+            # w = A * q_j
+            v_j = Q[:, j]
+            w = self.apply_H(v_j)
+
+            # Orthogonalize
+            for i in range(j + 1):
+                # h_{i,j} = q_i^H * w
+                h[i, j] = np.vdot(Q[:, i], w)
+                w = w - h[i, j] * Q[:, i]
+
+            # Norm
+            norm_w = np.linalg.norm(w)
+            h[j + 1, j] = norm_w
+
+            if norm_w < 1e-12: # Breakdown
+                print("Arnoldi breakdown (invariant subspace found)")
+                return h[:j+1, :j+1]
+
+            if j < k:
+                Q[:, j + 1] = w / norm_w
+
+        # Remove the last row of h (which is for the next vector) to get the square Hessenberg matrix
+        # Usually eigenvalues are computed from the square k x k part.
+        # But we computed k+1 rows.
+        # The eigenvalues of the projection are from h[:k, :k].
+
+        return h[:k, :k]
 
 if __name__ == "__main__":
-    # Test with L=2 (dim is small) first, then maybe L=3 or 4
-    # User asked for "valid strings of length 3L".
-    # In notebook: generate_all_valid_strings(4) produced 12 sites (3*4). So L=4 means 12 sites.
-    # Notebook ran tests on L=4.
-
-    # Let's try L=3 (9 sites) first as a quick test.
     L_test = 3
-    # n value? q + 1/q. Let's pick q = 1, so n = 2.
-    # Or q = exp(i*pi/3)?
-    # User said "C(q)-vector space". Since we need numerical values, I'll choose a generic q.
-    # q = 2 (so n = 2.5) to avoid roots of unity issues unless desired.
-    # Let's use n=2 (q=1) for simplicity as a start, or a complex number.
-    n_val = 2.0
+    n_val = 1.0
 
     solver = Sl3HeckeArnoldi(L=L_test, n_value=n_val)
-    eigenvalues = solver.run_arnoldi(k=min(10, solver.dim - 2))
 
-    print(f"Eigenvalues for L={L_test}, n={n_val}:")
-    for val in eigenvalues:
+    # Run Arnoldi
+    k_arnoldi = min(20, solver.dim)
+    hessenberg_mat = solver.arnoldi_iteration(k=k_arnoldi)
+
+    # Compute eigenvalues of Hessenberg matrix
+    eigenvalues = np.linalg.eigvals(hessenberg_mat)
+
+    # Sort by magnitude
+    eigenvalues = sorted(eigenvalues, key=abs, reverse=True)
+
+    print(f"Top eigenvalues for L={L_test}, n={n_val}:")
+    for val in eigenvalues[:10]:
         print(val)

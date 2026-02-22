@@ -1,4 +1,3 @@
-
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
@@ -24,10 +23,14 @@ def analyze_scaling(L_values, n_value):
             solver = Sl3HeckeArnoldi(L=L, n_value=n_value)
             print(f"  Dimension of space: {solver.dim}")
 
-            k = min(50, solver.dim - 2)
-            if k < 1: k = 1
+            k_arnoldi = min(50, solver.dim - 2)
+            if k_arnoldi < 1: k_arnoldi = 1
 
-            eigenvalues = solver.run_arnoldi(k=k, which='LM')
+            # Use custom Arnoldi iteration
+            hessenberg_mat = solver.arnoldi_iteration(k=k_arnoldi)
+
+            # Compute eigenvalues of Hessenberg matrix
+            eigenvalues = np.linalg.eigvals(hessenberg_mat)
             eigenvalues_by_L[L] = eigenvalues
 
             # Sort by magnitude descending
@@ -51,8 +54,8 @@ def analyze_scaling(L_values, n_value):
 
         except Exception as e:
             print(f"  Error processing L={L}: {e}")
-            # import traceback
-            # traceback.print_exc()
+            import traceback
+            traceback.print_exc()
 
     # Scaling Fit
     if len(f_L_values) >= 2:
@@ -116,10 +119,6 @@ def analyze_scaling(L_values, n_value):
         print("Not enough data points for fit.")
 
 if __name__ == "__main__":
-    # L=5 added. Note: dim for L=5 is 5810 (found via OEIS A000000 or logic? 462 * ?).
-    # Catalan numbers logic?
-    # Actually for sl3 it's generalized Catalan.
-    # L=5 might be around 6000. It should be fine.
     L_range = [2, 3, 4, 5]
     n_val = 1.0
 
