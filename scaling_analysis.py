@@ -17,12 +17,12 @@ def analyze_scaling(L_values, n_value, output_filename="eigenvalues_log.json"):
         "operator": "H = sum(e_i)",
         "L_values": L_values,
         "scaling_data": [],
-        "central_charge_estimate": None
+        "scaling_parameters": None
     }
 
     leading_eigenvalues = []
     f_L_values = []
-    inv_L_squared_values = []
+    L_array = []
 
     eigenvalues_by_L = {}
 
@@ -35,8 +35,21 @@ def analyze_scaling(L_values, n_value, output_filename="eigenvalues_log.json"):
             solver = Sl3HeckeArnoldi(L=L, n_value=n_value)
             print(f"  Dimension of space: {solver.dim}")
 
-            k_arnoldi = 50
-            if k_arnoldi < 1: k_arnoldi = 1
+            # 1. Fix k_arnoldi to 50 (or max possible for dim)
+            # The previous logic "min(50, solver.dim - 2)" is appropriate
+            # because Arnoldi needs k < dim usually, or at least k <= dim.
+            # If dim < 52, it will use dim-2 or dim-1 or just dim?
+            # Eigensolver typically requires k < dim-1 for convergence logic?
+            # But the custom implementation can handle k=dim.
+            # Let's set k to 50 if dim allows.
+
+            k_target = 50
+            if solver.dim <= k_target:
+                k_arnoldi = solver.dim  # Use full dimension if small
+            else:
+                k_arnoldi = k_target
+
+            print(f"  Using Arnoldi k = {k_arnoldi}")
 
             # Use custom Arnoldi iteration
             hessenberg_mat = solver.arnoldi_iteration(k=k_arnoldi)
@@ -59,7 +72,7 @@ def analyze_scaling(L_values, n_value, output_filename="eigenvalues_log.json"):
 
             leading_eigenvalues.append(Lambda_L)
             f_L_values.append(f_L_real)
-            inv_L_squared_values.append(1.0 / (L**2))
+            L_array.append(L)
 
             print(f"  f_L (real part): {f_L_real}")
             print(f"  Time elapsed: {time.time() - start_time:.2f}s")
@@ -85,14 +98,112 @@ def analyze_scaling(L_values, n_value, output_filename="eigenvalues_log.json"):
             import traceback
             traceback.print_exc()
 
+    # 2. Scaling Fit with new formula
+    # Formula: f_L = f_inf + (2 * f_sur) / L - (pi * v_F * c) / (24 * L^2) + o(L^{-2})
+    # y = A + B/L + C/L^2
+    # A = f_inf
+    # B = 2 * f_sur
+    # C = - (pi * v_F * c) / 24
+
+    if len(f_L_values) >= 3:
+        def scaling_model(L, A, B, C):
+            return A + B/L + C/(L**2)
+
+        popt, pcov = curve_fit(scaling_model, L_array, f_L_values)
+
+        f_inf_fit = popt[0]
+        B_fit = popt[1]
+        C_fit = popt[2]
+
+        f_sur_fit = B_fit / 2.0
+        vF_c_fit = - (24 * C_fit) / np.pi
+
+        print("\n" + "=" * 60)
+        print("Finite-Size Scaling Results (Quadratic Fit)")
+        print("=" * 60)
+        print(f"Model: f(L) = A + B/L + C/L^2")
+        print(f"A (f_inf): {f_inf_fit}")
+        print(f"B (2*f_sur): {B_fit} => f_sur = {f_sur_fit}")
+        print(f"C (-pi*v_F*c/24): {C_fit} => v_F*c = {vF_c_fit}")
+
+        results_data["scaling_parameters"] = {
+            "model": "f_L = A + B/L + C/L^2",
+            "A_f_inf": float(f_inf_fit),
+            "B_2f_sur": float(B_fit),
+            "C_coeff": float(C_fit),
+            "f_sur": float(f_sur_fit),
+            "vF_c_product": float(vF_c_fit)
+        }
 
         # Save to JSON file
         with open(output_filename, 'w') as f:
             json.dump(results_data, f, indent=4)
         print(f"Saved eigenvalues and results to '{output_filename}'")
 
+        # Plotting Scaling
+        plt.figure(figsize=(10, 6))
+
+        # Plot data
+        # We plot f_L vs 1/L for visualization, although fit is vs L
+        # Or plot vs 1/L^2?
+        # Usually standard is plot vs 1/L or 1/L^2.
+        # Let's plot f_L vs 1/L^2 as requested originally, but fit curve is quadratic in 1/L.
+        # It's parabolic in 1/L.
+
+        inv_L_squared = [1.0/(l**2) for l in L_array]
+        inv_L = [1.0/l for l in L_array]
+
+        plt.plot(inv_L_squared, f_L_values, 'o', label='Data')
+
+        # Generate fit curve
+        # We want to plot the curve against 1/L^2.
+        # Since x = 1/L^2, L = 1/sqrt(x).
+        # f(x) = A + B*sqrt(x) + C*x
+
+        x_fit = np.linspace(min(inv_L_squared)*0.9, max(inv_L_squared)*1.1, 100)
+        L_fit = 1.0 / np.sqrt(x_fit)
+        y_fit = scaling_model(L_fit, *popt)
+
+        plt.plot(x_fit, y_fit, '-', label=f'Fit: v_F c={vF_c_fit:.4f}')
+
+        plt.xlabel(r'$1/L^2$')
+        plt.ylabel(r'$f_L = \log(\Lambda_L)/(3L)$')
+        plt.title(f'Finite-Size Scaling (n={n_value})')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig('scaling_fit.png')
+        print("Saved scaling plot to 'scaling_fit.png'")
+
+        # Plotting Eigenvalue Distribution for largest L
+        max_L = max(L_values)
+        if max_L in eigenvalues_by_L:
+            evals = eigenvalues_by_L[max_L]
+            plt.figure(figsize=(8, 8))
+            plt.scatter(np.real(evals), np.imag(evals), marker='.', alpha=0.6)
+            plt.xlabel(r'Re($\lambda$)')
+            plt.ylabel(r'Im($\lambda$)')
+            plt.title(f'Eigenvalue Distribution (L={max_L}, top {len(evals)})')
+            plt.grid(True)
+            plt.axis('equal')
+            plt.savefig('eigenvalue_dist.png')
+            print("Saved eigenvalue distribution plot to 'eigenvalue_dist.png'")
+
+        # Data Table
+        print("\nData Table:")
+        print(f"{'L':<5} | {'1/L^2':<10} | {'Lambda_L (Leading)':<30} | {'f_L (Real)':<15}")
+        print("-" * 70)
+        for i, L in enumerate(L_values):
+            if i < len(leading_eigenvalues):
+                lam = leading_eigenvalues[i]
+                f = f_L_values[i]
+                inv_l2 = 1.0 / (L**2)
+                print(f"{L:<5} | {inv_l2:<10.5f} | {str(lam):<30} | {f:<15.6f}")
+
+    else:
+        print("Not enough data points for fit (need at least 3).")
+
 if __name__ == "__main__":
-    L_range = [2,3,4,5,6]
+    L_range = [2, 3, 4, 5]
     n_val = 1.0
 
     analyze_scaling(L_range, n_val)
