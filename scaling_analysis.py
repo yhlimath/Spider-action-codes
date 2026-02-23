@@ -6,15 +6,15 @@ import time
 import json
 import datetime
 
-def analyze_scaling(L_values, n_value, output_filename="eigenvalues_log.json"):
-    print(f"Starting Finite-Size Scaling Analysis for n = {n_value}")
+def analyze_scaling(L_values, n_value, operator='H', output_filename="eigenvalues_log.json"):
+    print(f"Starting Finite-Size Scaling Analysis for n = {n_value} (Operator: {operator})")
     print("=" * 60)
 
     # Data structure to hold results
     results_data = {
         "timestamp": datetime.datetime.now().isoformat(),
         "n_value": n_value,
-        "operator": "H = sum(e_i)",
+        "operator": operator,
         "L_values": L_values,
         "scaling_data": [],
         "scaling_parameters": None
@@ -35,24 +35,16 @@ def analyze_scaling(L_values, n_value, output_filename="eigenvalues_log.json"):
             solver = Sl3HeckeArnoldi(L=L, n_value=n_value)
             print(f"  Dimension of space: {solver.dim}")
 
-            # 1. Fix k_arnoldi to 50 (or max possible for dim)
-            # The previous logic "min(50, solver.dim - 2)" is appropriate
-            # because Arnoldi needs k < dim usually, or at least k <= dim.
-            # If dim < 52, it will use dim-2 or dim-1 or just dim?
-            # Eigensolver typically requires k < dim-1 for convergence logic?
-            # But the custom implementation can handle k=dim.
-            # Let's set k to 50 if dim allows.
-
             k_target = 50
             if solver.dim <= k_target:
-                k_arnoldi = solver.dim  # Use full dimension if small
+                k_arnoldi = solver.dim
             else:
                 k_arnoldi = k_target
 
             print(f"  Using Arnoldi k = {k_arnoldi}")
 
             # Use custom Arnoldi iteration
-            hessenberg_mat = solver.arnoldi_iteration(k=k_arnoldi)
+            hessenberg_mat = solver.arnoldi_iteration(k=k_arnoldi, operator=operator)
 
             # Compute eigenvalues of Hessenberg matrix
             eigenvalues = np.linalg.eigvals(hessenberg_mat)
@@ -98,13 +90,7 @@ def analyze_scaling(L_values, n_value, output_filename="eigenvalues_log.json"):
             import traceback
             traceback.print_exc()
 
-    # 2. Scaling Fit with new formula
-    # Formula: f_L = f_inf + (2 * f_sur) / L - (pi * v_F * c) / (24 * L^2) + o(L^{-2})
-    # y = A + B/L + C/L^2
-    # A = f_inf
-    # B = 2 * f_sur
-    # C = - (pi * v_F * c) / 24
-
+    # Scaling Fit
     if len(f_L_values) >= 3:
         def scaling_model(L, A, B, C):
             return A + B/L + C/(L**2)
@@ -135,30 +121,25 @@ def analyze_scaling(L_values, n_value, output_filename="eigenvalues_log.json"):
             "vF_c_product": float(vF_c_fit)
         }
 
-        # Save to JSON file
-        with open(output_filename, 'w') as f:
+        # Save to JSON file (append or overwrite? If running both H and T, append is better but user wants file)
+        # I'll use filename based on operator to separate them, or just one file per run.
+        # User said "in a file...".
+        # I'll prepend operator to filename or user specifies it.
+        # Default filename provided, but I can modify it.
+
+        final_output_filename = output_filename.replace(".json", f"_{operator}.json")
+
+        with open(final_output_filename, 'w') as f:
             json.dump(results_data, f, indent=4)
-        print(f"Saved eigenvalues and results to '{output_filename}'")
+        print(f"Saved eigenvalues and results to '{final_output_filename}'")
 
         # Plotting Scaling
         plt.figure(figsize=(10, 6))
 
-        # Plot data
-        # We plot f_L vs 1/L for visualization, although fit is vs L
-        # Or plot vs 1/L^2?
-        # Usually standard is plot vs 1/L or 1/L^2.
-        # Let's plot f_L vs 1/L^2 as requested originally, but fit curve is quadratic in 1/L.
-        # It's parabolic in 1/L.
-
         inv_L_squared = [1.0/(l**2) for l in L_array]
         inv_L = [1.0/l for l in L_array]
 
-        plt.plot(inv_L_squared, f_L_values, 'o', label='Data')
-
-        # Generate fit curve
-        # We want to plot the curve against 1/L^2.
-        # Since x = 1/L^2, L = 1/sqrt(x).
-        # f(x) = A + B*sqrt(x) + C*x
+        plt.plot(inv_L_squared, f_L_values, 'o', label=f'Data ({operator})')
 
         x_fit = np.linspace(min(inv_L_squared)*0.9, max(inv_L_squared)*1.1, 100)
         L_fit = 1.0 / np.sqrt(x_fit)
@@ -168,11 +149,12 @@ def analyze_scaling(L_values, n_value, output_filename="eigenvalues_log.json"):
 
         plt.xlabel(r'$1/L^2$')
         plt.ylabel(r'$f_L = \log(\Lambda_L)/(3L)$')
-        plt.title(f'Finite-Size Scaling (n={n_value})')
+        plt.title(f'Finite-Size Scaling (n={n_value}, Operator={operator})')
         plt.legend()
         plt.grid(True)
-        plt.savefig('scaling_fit.png')
-        print("Saved scaling plot to 'scaling_fit.png'")
+        plot_filename = f'scaling_fit_{operator}.png'
+        plt.savefig(plot_filename)
+        print(f"Saved scaling plot to '{plot_filename}'")
 
         # Plotting Eigenvalue Distribution for largest L
         max_L = max(L_values)
@@ -182,11 +164,12 @@ def analyze_scaling(L_values, n_value, output_filename="eigenvalues_log.json"):
             plt.scatter(np.real(evals), np.imag(evals), marker='.', alpha=0.6)
             plt.xlabel(r'Re($\lambda$)')
             plt.ylabel(r'Im($\lambda$)')
-            plt.title(f'Eigenvalue Distribution (L={max_L}, top {len(evals)})')
+            plt.title(f'Eigenvalue Distribution (L={max_L}, Operator={operator})')
             plt.grid(True)
             plt.axis('equal')
-            plt.savefig('eigenvalue_dist.png')
-            print("Saved eigenvalue distribution plot to 'eigenvalue_dist.png'")
+            dist_filename = f'eigenvalue_dist_{operator}.png'
+            plt.savefig(dist_filename)
+            print(f"Saved eigenvalue distribution plot to '{dist_filename}'")
 
         # Data Table
         print("\nData Table:")
@@ -206,4 +189,9 @@ if __name__ == "__main__":
     L_range = [2, 3, 4, 5]
     n_val = 1.0
 
-    analyze_scaling(L_range, n_val)
+    # Analyze H
+    analyze_scaling(L_range, n_val, operator='H')
+
+    # Analyze T
+    print("\n" + "#" * 80 + "\n")
+    analyze_scaling(L_range, n_val, operator='T')

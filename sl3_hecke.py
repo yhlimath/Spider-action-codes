@@ -268,120 +268,149 @@ class Sl3HeckeArnoldi:
         self.dim = len(self.basis_strings)
         self.string_to_idx = {tuple(s): i for i, s in enumerate(self.basis_strings)}
 
-        # Caching e operations for performance (optional, but good for "by hand" iteration if repeated)
-        # But to be truly matrix-free, we shouldn't precompute matrix entries,
-        # but maybe we can cache individual e_k(s) results if memory allows.
-        # Given "H is very sparse so we do not need to know all the entries to do Arnoldi method. Rather, let's do Arnoldi 'by hand' without resorting to existing programs",
-        # I will implement applying H(v) on the fly.
-        self.e_cache = {}
+        # Caches
+        self.e_cache = {} # Cache for individual e_k(s)
+        self.H_cache = {} # Cache for H(s) = sum e_k(s)
+
+    def _get_e_k_action(self, s, k):
+        s_tuple = tuple(s)
+        cache_key = (s_tuple, k)
+        if cache_key in self.e_cache:
+            return self.e_cache[cache_key]
+
+        res_pairs = e([(1, s)], k)
+        action_results = []
+        for c, res_s in res_pairs:
+            if isinstance(c, Polynomial):
+                val = c.evaluate(self.n_value)
+            else:
+                val = c
+
+            res_idx = self.string_to_idx.get(tuple(res_s))
+            if res_idx is not None:
+                action_results.append((val, res_idx))
+
+        self.e_cache[cache_key] = action_results
+        return action_results
+
+    def _get_H_action(self, s):
+        s_tuple = tuple(s)
+        if s_tuple in self.H_cache:
+            return self.H_cache[s_tuple]
+
+        num_generators = 3 * self.L - 1
+        h_s_results = []
+        # H = sum e_k
+        for k in range(1, num_generators + 1):
+            e_k_results = self._get_e_k_action(s, k)
+            h_s_results.extend(e_k_results)
+
+        # Optimization: Combine like terms?
+        # A basis index might appear multiple times from different e_k
+        # If we sum them up here, we save additions later.
+        combined_results = {}
+        for val, idx in h_s_results:
+            combined_results[idx] = combined_results.get(idx, 0) + val
+
+        final_results = [(val, idx) for idx, val in combined_results.items() if val != 0]
+        self.H_cache[s_tuple] = final_results
+        return final_results
 
     def apply_H(self, v):
         """
         Apply H = sum e_i to a dense vector v on the fly.
-        v: numpy array of shape (dim,)
-        Returns: H * v
         """
-        # Output vector
         w = np.zeros(self.dim, dtype=complex)
-
-        # H is sum of e_k for k=1..3L-1
-        num_generators = 3 * self.L - 1
-
-        # Iterate over non-zero elements of v?
-        # v is likely dense in Arnoldi. So iterate over all basis elements i.
-        # If v[i] is small, maybe skip? No, explicit loop over basis.
-
-        # Optimization: H is sum of e_k. Applying e_k to basis element s gives a linear combination of basis elements.
-        # w = sum_i v[i] * H(s_i)
-        #   = sum_i v[i] * sum_k e_k(s_i)
-
-        # This is essentially matrix-vector multiplication where matrix is implicit.
-        # To make this fast, we can cache the result of H(s_i).
-        # H(s_i) is a sparse vector (list of (coeff, index)).
 
         for idx, s in enumerate(self.basis_strings):
             coeff_v = v[idx]
             if abs(coeff_v) < 1e-12: continue
 
-            # Apply H to s: sum_k e_k(s)
-            # Check cache
-            s_tuple = tuple(s)
-            if s_tuple in self.e_cache:
-                h_s_results = self.e_cache[s_tuple]
-            else:
-                h_s_results = [] # List of (val, target_idx)
-                for k in range(1, num_generators + 1):
-                    res_pairs = e([(1, s)], k)
-                    for c, res_s in res_pairs:
-                        if isinstance(c, Polynomial):
-                            val = c.evaluate(self.n_value)
-                        else:
-                            val = c
+            h_s_results = self._get_H_action(s)
 
-                        res_idx = self.string_to_idx.get(tuple(res_s))
-                        if res_idx is not None:
-                            h_s_results.append((val, res_idx))
-
-                # Cache it? If L is large, cache might grow.
-                # For L=5, dim=6006. 6006 entries in cache. Each entry is a list of ~few terms.
-                # This is manageable.
-                self.e_cache[s_tuple] = h_s_results
-
-            # Add contribution to w
             for val, target_idx in h_s_results:
                 w[target_idx] += coeff_v * val
 
         return w
 
-    def arnoldi_iteration(self, k, start_vector_idx=None):
+    def apply_T(self, v):
+        """
+        Apply Transfer Matrix T = prod e_even * prod e_odd to v.
+        Application order: Apply odd indices first, then even indices.
+        """
+        w = v.copy()
+        num_generators = 3 * self.L - 1
+
+        # Odd indices: 1, 3, 5, ...
+        odd_indices = range(1, num_generators + 1, 2)
+        # Even indices: 2, 4, 6, ...
+        even_indices = range(2, num_generators + 1, 2)
+
+        # Apply all odd e_k
+        for k in odd_indices:
+            w = self.apply_single_generator(w, k)
+
+        # Apply all even e_k
+        for k in even_indices:
+            w = self.apply_single_generator(w, k)
+
+        return w
+
+    def apply_single_generator(self, v, k):
+        """
+        Apply e_k to v.
+        """
+        w = np.zeros(self.dim, dtype=complex)
+
+        for idx, s in enumerate(self.basis_strings):
+            coeff_v = v[idx]
+            if abs(coeff_v) < 1e-12: continue
+
+            action_results = self._get_e_k_action(s, k)
+            for val, target_idx in action_results:
+                w[target_idx] += coeff_v * val
+        return w
+
+    def arnoldi_iteration(self, k, start_vector_idx=None, operator='H'):
         """
         Run Arnoldi iteration manually.
-        k: Number of Krylov vectors (dimension of Hessenberg matrix)
-        start_vector_idx: Index of basis string to start with (default: random or 0)
+        operator: 'H' for Hamiltonian, 'T' for Transfer Matrix
         """
-        print(f"Running custom Arnoldi iteration (k={k})...")
+        print(f"Running custom Arnoldi iteration (k={k}, operator={operator})...")
 
-        # Q matrix (orthogonal basis vectors)
         Q = np.zeros((self.dim, k + 1), dtype=complex)
-        # H matrix (Hessenberg)
         h = np.zeros((k + 1, k), dtype=complex)
 
-        # Start vector
         if start_vector_idx is None:
-            # Use a random basis string as requested, or just index 0
-            # "We just begin with a vector v, which is a basis_string"
-            # Random basis string index
             start_vector_idx = random.randint(0, self.dim - 1)
 
         print(f"Starting with basis vector index {start_vector_idx}")
-        Q[start_vector_idx, 0] = 1.0 # Normalized since it's a basis vector
+        Q[start_vector_idx, 0] = 1.0
 
         for j in range(k):
-            # w = A * q_j
             v_j = Q[:, j]
-            w = self.apply_H(v_j)
+
+            if operator == 'H':
+                w = self.apply_H(v_j)
+            elif operator == 'T':
+                w = self.apply_T(v_j)
+            else:
+                raise ValueError("Unknown operator. Use 'H' or 'T'.")
 
             # Orthogonalize
             for i in range(j + 1):
-                # h_{i,j} = q_i^H * w
                 h[i, j] = np.vdot(Q[:, i], w)
                 w = w - h[i, j] * Q[:, i]
 
-            # Norm
             norm_w = np.linalg.norm(w)
             h[j + 1, j] = norm_w
 
-            if norm_w < 1e-12: # Breakdown
+            if norm_w < 1e-12:
                 print("Arnoldi breakdown (invariant subspace found)")
                 return h[:j+1, :j+1]
 
             if j < k:
                 Q[:, j + 1] = w / norm_w
-
-        # Remove the last row of h (which is for the next vector) to get the square Hessenberg matrix
-        # Usually eigenvalues are computed from the square k x k part.
-        # But we computed k+1 rows.
-        # The eigenvalues of the projection are from h[:k, :k].
 
         return h[:k, :k]
 
@@ -391,16 +420,14 @@ if __name__ == "__main__":
 
     solver = Sl3HeckeArnoldi(L=L_test, n_value=n_val)
 
-    # Run Arnoldi
-    k_arnoldi = min(20, solver.dim)
-    hessenberg_mat = solver.arnoldi_iteration(k=k_arnoldi)
+    # Test H
+    print("Testing H operator:")
+    h_mat = solver.arnoldi_iteration(k=10, operator='H')
+    evals_H = np.linalg.eigvals(h_mat)
+    print("Top eigenvalues (H):", sorted(evals_H, key=abs, reverse=True)[:3])
 
-    # Compute eigenvalues of Hessenberg matrix
-    eigenvalues = np.linalg.eigvals(hessenberg_mat)
-
-    # Sort by magnitude
-    eigenvalues = sorted(eigenvalues, key=abs, reverse=True)
-
-    print(f"Top eigenvalues for L={L_test}, n={n_val}:")
-    for val in eigenvalues[:10]:
-        print(val)
+    # Test T
+    print("\nTesting T operator:")
+    t_mat = solver.arnoldi_iteration(k=10, operator='T')
+    evals_T = np.linalg.eigvals(t_mat)
+    print("Top eigenvalues (T):", sorted(evals_T, key=abs, reverse=True)[:3])
