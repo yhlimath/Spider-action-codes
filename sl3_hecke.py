@@ -386,13 +386,13 @@ class Sl3HeckeArnoldi:
         return h[:k, :k]
 
 if __name__ == "__main__":
-    L_test = 3
-    n_val = 1.0
+    L_test = 2
+    n_val = 1.414
 
     solver = Sl3HeckeArnoldi(L=L_test, n_value=n_val)
 
     # Run Arnoldi
-    k_arnoldi = min(20, solver.dim)
+    k_arnoldi = min(20, solver.dim+10)
     hessenberg_mat = solver.arnoldi_iteration(k=k_arnoldi)
 
     # Compute eigenvalues of Hessenberg matrix

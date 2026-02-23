@@ -35,7 +35,7 @@ def analyze_scaling(L_values, n_value, output_filename="eigenvalues_log.json"):
             solver = Sl3HeckeArnoldi(L=L, n_value=n_value)
             print(f"  Dimension of space: {solver.dim}")
 
-            k_arnoldi = min(50, solver.dim - 2)
+            k_arnoldi = 50
             if k_arnoldi < 1: k_arnoldi = 1
 
             # Use custom Arnoldi iteration
@@ -85,80 +85,14 @@ def analyze_scaling(L_values, n_value, output_filename="eigenvalues_log.json"):
             import traceback
             traceback.print_exc()
 
-    # Scaling Fit
-    if len(f_L_values) >= 2:
-        def linear_model(x, a, b):
-            return a + b * x
-
-        popt, pcov = curve_fit(linear_model, inv_L_squared_values, f_L_values)
-        f_inf_fit = popt[0]
-        slope_fit = popt[1]
-
-        # Formula: f_L = f_inf - (pi * c) / (54 * L^2)
-        # Slope B = - pi * c / 54
-        c_estimated = - (54 * slope_fit) / np.pi
-
-        print("\n" + "=" * 60)
-        print("Finite-Size Scaling Results")
-        print("=" * 60)
-        print(f"Slope (B): {slope_fit}")
-        print(f"Intercept (f_inf): {f_inf_fit}")
-        print(f"Estimated Central Charge c: {c_estimated}")
-
-        results_data["central_charge_estimate"] = {
-            "c": float(c_estimated),
-            "slope": float(slope_fit),
-            "intercept": float(f_inf_fit)
-        }
 
         # Save to JSON file
         with open(output_filename, 'w') as f:
             json.dump(results_data, f, indent=4)
         print(f"Saved eigenvalues and results to '{output_filename}'")
 
-        # Plotting Scaling
-        plt.figure(figsize=(10, 6))
-        plt.plot(inv_L_squared_values, f_L_values, 'o', label='Data')
-        x_fit = np.linspace(min(inv_L_squared_values)*0.9, max(inv_L_squared_values)*1.1, 100)
-        plt.plot(x_fit, linear_model(x_fit, *popt), '-', label=f'Fit: c={c_estimated:.4f}')
-        plt.xlabel(r'$1/L^2$')
-        plt.ylabel(r'$f_L = \log(\Lambda_L)/(3L)$')
-        plt.title(f'Finite-Size Scaling (n={n_value})')
-        plt.legend()
-        plt.grid(True)
-        plt.savefig('scaling_fit.png')
-        print("Saved scaling plot to 'scaling_fit.png'")
-
-        # Plotting Eigenvalue Distribution for largest L
-        max_L = max(L_values)
-        if max_L in eigenvalues_by_L:
-            evals = eigenvalues_by_L[max_L]
-            plt.figure(figsize=(8, 8))
-            plt.scatter(np.real(evals), np.imag(evals), marker='.', alpha=0.6)
-            plt.xlabel(r'Re($\lambda$)')
-            plt.ylabel(r'Im($\lambda$)')
-            plt.title(f'Eigenvalue Distribution (L={max_L}, top {len(evals)})')
-            plt.grid(True)
-            plt.axis('equal')
-            plt.savefig('eigenvalue_dist.png')
-            print("Saved eigenvalue distribution plot to 'eigenvalue_dist.png'")
-
-        # Data Table
-        print("\nData Table:")
-        print(f"{'L':<5} | {'1/L^2':<10} | {'Lambda_L (Leading)':<30} | {'f_L (Real)':<15}")
-        print("-" * 70)
-        for i, L in enumerate(L_values):
-            if i < len(leading_eigenvalues):
-                lam = leading_eigenvalues[i]
-                f = f_L_values[i]
-                inv_l2 = inv_L_squared_values[i]
-                print(f"{L:<5} | {inv_l2:<10.5f} | {str(lam):<30} | {f:<15.6f}")
-
-    else:
-        print("Not enough data points for fit.")
-
 if __name__ == "__main__":
-    L_range = [2, 3, 4, 5]
+    L_range = [2,3,4,5,6]
     n_val = 1.0
 
     analyze_scaling(L_range, n_val)
