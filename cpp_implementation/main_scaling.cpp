@@ -63,8 +63,8 @@ int main(int argc, char* argv[]) {
     // Timer start
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    // Run Arnoldi
-    auto H_mat = system.arnoldi(k_arnoldi, -1, op_char); // -1 for random start
+    // Run Arnoldi to get Hessenberg Matrix
+    auto H_mat = system.arnoldi(k_arnoldi, -1, op_char);
 
     // Timer stop
     auto end_time = std::chrono::high_resolution_clock::now();

@@ -51,21 +51,31 @@ def run_cpp_solver(L, n_val, operator, k_arnoldi=50):
         if "time_elapsed" in data:
             print(f"  C++ Time Elapsed: {data['time_elapsed']:.4f}s")
 
-        # Reconstruct Hessenberg matrix
-        h_json = data['hessenberg_matrix']
-        h_mat = []
-        for row_json in h_json:
-            row = []
-            for elem in row_json:
-                row.append(complex(elem['real'], elem['imag']))
-            h_mat.append(row)
+        # Reconstruct Hessenberg matrix from JSON
+        if 'hessenberg_matrix' in data:
+            h_json = data['hessenberg_matrix']
+            h_mat = []
+            for row_json in h_json:
+                row = []
+                for elem in row_json:
+                    row.append(complex(elem['real'], elem['imag']))
+                h_mat.append(row)
 
-        h_mat = np.array(h_mat)
+            h_mat = np.array(h_mat)
 
-        # Compute eigenvalues
-        eigenvalues = np.linalg.eigvals(h_mat)
+            # Compute eigenvalues using numpy
+            eigenvalues = np.linalg.eigvals(h_mat)
+            data['eigenvalues_computed'] = sorted(eigenvalues, key=abs, reverse=True)
+        elif 'eigenvalues' in data:
+             # Fallback if somehow using old format (should not happen with current revert)
+            eigenvalues = []
+            for ev in data['eigenvalues']:
+                eigenvalues.append(complex(ev['real'], ev['imag']))
+            data['eigenvalues_computed'] = sorted(eigenvalues, key=abs, reverse=True)
+        else:
+            print("Warning: No hessenberg_matrix or eigenvalues in JSON output.")
+            data['eigenvalues_computed'] = []
 
-        data['eigenvalues_computed'] = sorted(eigenvalues, key=abs, reverse=True)
         return data
 
     except subprocess.CalledProcessError as e:
@@ -100,9 +110,6 @@ def analyze_scaling_cpp(L_values, n_val, operator='H', output_filename="eigenval
     eigenvalues_by_L = {}
 
     for L in L_values:
-        # Determine k based on L?
-        # For L=6, dim is large. k=50 is fine.
-        # For small L, dim is small.
         k = 50
 
         data = run_cpp_solver(L, n_val, operator, k)
@@ -214,10 +221,7 @@ def analyze_scaling_cpp(L_values, n_val, operator='H', output_filename="eigenval
             plt.savefig(f'eigenvalue_dist_cpp_{operator}.png')
 
 if __name__ == "__main__":
-    # Test with L up to 6?
-    # L=2, 3, 4, 5, 6
-    L_range = [2, 3, 4, 5, 6]
-    # n can be complex now.
+    L_range = [2, 3, 4, 5]
     n_val = 1.0 + 0.0j
 
     analyze_scaling_cpp(L_range, n_val, operator='H')
