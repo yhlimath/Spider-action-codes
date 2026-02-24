@@ -213,11 +213,11 @@ def analyze_scaling(L_values, n_value, operator='H', output_filename="eigenvalue
         print("Not enough data points for fit (need at least 3).")
 
 if __name__ == "__main__":
-    L_range = [2, 3, 4, 5]
-    n_val = 1.0
+    L_range = [2,3,4,5,6,7]
+    n_val = 0.25
 
     # Analyze H
-    analyze_scaling(L_range, n_val, operator='H')
+    #analyze_scaling(L_range, n_val, operator='H')
 
     # Analyze T
     print("\n" + "#" * 80 + "\n")
