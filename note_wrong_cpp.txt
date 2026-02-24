@@ -1,0 +1,16 @@
+Running C++: ./cpp_implementation/main_scaling 2 1.0 0.0 H 50
+  C++ Time Elapsed: 0.0006s
+  Leading eigenvalue (LM): (5.732050807568876+1.9647555075389758e-19j)
+  f_L (real part): 0.29101222896221174
+Running C++: ./cpp_implementation/main_scaling 3 1.0 0.0 H 50
+  C++ Time Elapsed: 0.4506s
+  Leading eigenvalue (LM): (9.411474127809825+1.1361229953403735e-22j)
+  f_L (real part): 0.24910328853119945
+Running C++: ./cpp_implementation/main_scaling 4 1.0 0.0 H 50
+  C++ Time Elapsed: 20.7176s
+  Leading eigenvalue (LM): (13.078116022520156+8.789010548979967e-33j)
+  f_L (real part): 0.21424502505662468
+Running C++: ./cpp_implementation/main_scaling 5 1.0 0.0 H 50
+  C++ Time Elapsed: 680.5740s
+  Leading eigenvalue (LM): (16.73968131825721+6.216571544808006e-17j)
+  f_L (real part): 0.1878521351825983

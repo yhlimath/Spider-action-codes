@@ -216,7 +216,7 @@ def analyze_scaling_cpp(L_values, n_val, operator='H', output_filename="eigenval
 if __name__ == "__main__":
     # Test with L up to 6?
     # L=2, 3, 4, 5, 6
-    L_range = [2, 3, 4, 5]
+    L_range = [2, 3, 4, 5, 6]
     # n can be complex now.
     n_val = 1.0 + 0.0j
 
