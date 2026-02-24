@@ -19,7 +19,6 @@ class SymbolicHeckeBuilder:
 
     def get_H_matrix(self):
         """Build the symbolic matrix for H = sum e_k."""
-        # Initialize matrix with zero polynomials
         matrix = [[Polynomial() for _ in range(self.dim)] for _ in range(self.dim)]
 
         num_generators = 3 * self.L - 1
@@ -143,9 +142,56 @@ class SymbolicHeckeBuilder:
             rows.append(s_str)
         return "{\n" + ",\n".join(rows) + "\n}"
 
+    def evaluate_matrix(self, matrix, n_val):
+        """Evaluate a symbolic matrix at n=n_val to get a numpy array."""
+        evaluated = np.zeros((self.dim, self.dim), dtype=float)
+        for i in range(self.dim):
+            for j in range(self.dim):
+                evaluated[i, j] = matrix[i][j].evaluate(n_val)
+        return evaluated
+
+    def analyze_structure(self, matrix, name, n_val=1.2345):
+        """Analyze rank and sparsity of the matrix."""
+        print(f"\n--- Analysis of {name} Matrix (L={self.L}) ---")
+
+        # 1. Rank
+        evaluated = self.evaluate_matrix(matrix, n_val)
+        rank = np.linalg.matrix_rank(evaluated)
+        print(f"Rank (at n={n_val:.4f}): {rank}")
+
+        # 2. Non-zero entries (sparse format)
+        non_zero_entries = []
+        active_rows = set()
+        active_cols = set()
+
+        for i in range(self.dim):
+            for j in range(self.dim):
+                if not matrix[i][j].is_zero():
+                    poly_str = self.polynomial_to_mathematica(matrix[i][j])
+                    non_zero_entries.append((i, j, poly_str))
+                    active_rows.add(i)
+                    active_cols.add(j)
+
+        print(f"Non-zero entries: {len(non_zero_entries)} (Sparsity: {len(non_zero_entries)/(self.dim**2)*100:.1f}%)")
+
+        # 3. Active Vectors (Rows/Cols)
+        print(f"Active Row Indices (Image support): {sorted(list(active_rows))}")
+        print(f"Active Column Indices (Source support): {sorted(list(active_cols))}")
+
+        # Print list of non-zero entries? If too many, maybe skip.
+        # "keep of list of non-zero entries" - user asked for it.
+        # Assuming for small L it's fine.
+        print("\nNon-zero Entries List (row, col -> value):")
+        for r, c, val in non_zero_entries:
+            row_basis = self.basis_strings[r]
+            col_basis = self.basis_strings[c]
+            print(f"  ({r}, {c}) -> {val}")
+            # print(f"    Basis[{r}] (Row): {row_basis}")
+            # print(f"    Basis[{c}] (Col): {col_basis}")
+
 def generate_symbolic_matrices(L_list=[2, 3]):
     for L in L_list:
-        print(f"Generating symbolic matrices for L={L}...")
+        print(f"\nGenerating symbolic matrices for L={L}...")
         builder = SymbolicHeckeBuilder(L)
         print(f"  Dimension: {builder.dim}")
 
@@ -166,6 +212,9 @@ def generate_symbolic_matrices(L_list=[2, 3]):
             f.write(f"HL{L} = {H_str};\n")
         print(f"  Saved H matrix to {filename_H}")
 
+        # Analyze H
+        builder.analyze_structure(H_mat, "Hamiltonian H", n_val=1.2345)
+
         # T Matrix
         T_mat = builder.get_T_matrix()
         T_str = builder.matrix_to_mathematica(T_mat)
@@ -174,6 +223,9 @@ def generate_symbolic_matrices(L_list=[2, 3]):
             f.write(f"(* Transfer Matrix T for L={L} *)\n")
             f.write(f"TL{L} = {T_str};\n")
         print(f"  Saved T matrix to {filename_T}")
+
+        # Analyze T
+        builder.analyze_structure(T_mat, "Transfer Matrix T", n_val=1.2345)
 
 if __name__ == "__main__":
     generate_symbolic_matrices()
