@@ -121,40 +121,67 @@ def analyze_scaling(L_values, n_value, operator='H', output_filename="eigenvalue
             "vF_c_product": float(vF_c_fit)
         }
 
-        # Save to JSON file (append or overwrite? If running both H and T, append is better but user wants file)
-        # I'll use filename based on operator to separate them, or just one file per run.
-        # User said "in a file...".
-        # I'll prepend operator to filename or user specifies it.
-        # Default filename provided, but I can modify it.
-
         final_output_filename = output_filename.replace(".json", f"_{operator}.json")
-
         with open(final_output_filename, 'w') as f:
             json.dump(results_data, f, indent=4)
         print(f"Saved eigenvalues and results to '{final_output_filename}'")
 
-        # Plotting Scaling
-        plt.figure(figsize=(10, 6))
+        # 1. Corrected Scaling Plot: f_L - 2 f_sur / L vs 1/L^2
+        # y_corrected = f_L - B / L
+        # Model: y = A + C / L^2
+        # Plot y vs 1/L^2
 
+        y_corrected = [f - B_fit/l for f, l in zip(f_L_values, L_array)]
         inv_L_squared = [1.0/(l**2) for l in L_array]
-        inv_L = [1.0/l for l in L_array]
 
-        plt.plot(inv_L_squared, f_L_values, 'o', label=f'Data ({operator})')
+        plt.figure(figsize=(10, 6))
+        plt.plot(inv_L_squared, y_corrected, 'o', label=f'Data corrected')
 
+        # Line: A + C * x
         x_fit = np.linspace(min(inv_L_squared)*0.9, max(inv_L_squared)*1.1, 100)
-        L_fit = 1.0 / np.sqrt(x_fit)
-        y_fit = scaling_model(L_fit, *popt)
+        y_fit = f_inf_fit + C_fit * x_fit
 
-        plt.plot(x_fit, y_fit, '-', label=f'Fit: v_F c={vF_c_fit:.4f}')
+        plt.plot(x_fit, y_fit, '-', label=f'Fit: Slope (C)={C_fit:.4f}')
 
         plt.xlabel(r'$1/L^2$')
-        plt.ylabel(r'$f_L = \log(\Lambda_L)/(3L)$')
-        plt.title(f'Finite-Size Scaling (n={n_value}, Operator={operator})')
+        plt.ylabel(r'$f_L - 2 f_{sur}/L$')
+        plt.title(f'Corrected Scaling (n={n_value}, Operator={operator})')
         plt.legend()
         plt.grid(True)
-        plot_filename = f'scaling_fit_{operator}.png'
+        plot_filename = f'scaling_fit_corrected_{operator}.png'
         plt.savefig(plot_filename)
-        print(f"Saved scaling plot to '{plot_filename}'")
+        print(f"Saved corrected scaling plot to '{plot_filename}'")
+
+        # Also keep original plot? User said "plot also".
+        # Let's regenerate the standard one too if needed, but the prompt focused on the new one.
+        # "plot also f_L-2f_sur/L against L^{-2}" implies adding another plot.
+        # I'll save the standard one as well for completeness if I didn't overwrite variables.
+        # Re-plotting standard one:
+        plt.figure(figsize=(10, 6))
+        plt.plot(inv_L_squared, f_L_values, 'o', label='Data')
+        # We need model vs 1/L^2. Since model is A + B/L + C/L^2
+        # x = 1/L^2 -> L = 1/sqrt(x).
+        y_fit_std = scaling_model(1.0/np.sqrt(x_fit), *popt)
+        plt.plot(x_fit, y_fit_std, '-', label='Quadratic Fit')
+        plt.xlabel(r'$1/L^2$')
+        plt.ylabel(r'$f_L$')
+        plt.title(f'Standard Scaling (n={n_value}, Operator={operator})')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f'scaling_fit_{operator}.png')
+
+        # 2. Mathematica Output
+        # {{L,f_L}, {L+1,f_{L+1}},...}
+        mathematica_pairs = []
+        for l, f in zip(L_array, f_L_values):
+            mathematica_pairs.append(f"{{{l}, {f}}}")
+
+        mathematica_str = "{" + ", ".join(mathematica_pairs) + "}"
+        m_filename = f"{operator}_data_L_fL.m"
+        with open(m_filename, 'w') as f:
+            f.write(f"(* Data for {operator}, n={n_value} *)\n")
+            f.write(f"data{operator} = {mathematica_str};\n")
+        print(f"Saved Mathematica data to '{m_filename}'")
 
         # Plotting Eigenvalue Distribution for largest L
         max_L = max(L_values)
