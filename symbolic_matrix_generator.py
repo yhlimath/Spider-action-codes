@@ -189,7 +189,7 @@ class SymbolicHeckeBuilder:
             # print(f"    Basis[{r}] (Row): {row_basis}")
             # print(f"    Basis[{c}] (Col): {col_basis}")
 
-def generate_symbolic_matrices(L_list=[2, 3, 4]):
+def generate_symbolic_matrices(L_list=[2, 3]):
     for L in L_list:
         print(f"\nGenerating symbolic matrices for L={L}...")
         builder = SymbolicHeckeBuilder(L)
