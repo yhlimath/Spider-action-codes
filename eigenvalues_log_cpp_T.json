@@ -12,6 +12,7 @@
         {
             "L": 2,
             "dim": 5,
+            "time_elapsed": 8.9494e-05,
             "leading_eigenvalue": {
                 "real": 2.999999999999999,
                 "imag": 0.0,
@@ -32,6 +33,7 @@
         {
             "L": 3,
             "dim": 42,
+            "time_elapsed": 0.00214049,
             "leading_eigenvalue": {
                 "real": 8.290859369381602,
                 "imag": 0.0,
@@ -60,6 +62,7 @@
         {
             "L": 4,
             "dim": 462,
+            "time_elapsed": 0.0212255,
             "leading_eigenvalue": {
                 "real": 22.39230484541325,
                 "imag": -2.8116482788691925e-17,
@@ -92,6 +95,7 @@
         {
             "L": 5,
             "dim": 6006,
+            "time_elapsed": 0.778796,
             "leading_eigenvalue": {
                 "real": 59.902666907610204,
                 "imag": 0.0,

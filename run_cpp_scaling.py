@@ -24,12 +24,6 @@ def run_cpp_solver(L, n_val, operator, k_arnoldi=50):
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        # Parse JSON from stdout
-        # The C++ program might output debug info to stderr or stdout.
-        # I used cout for JSON.
-        # I need to ensure only JSON is in stdout or filter it.
-        # My C++ code uses cout for "Arnoldi breakdown..." messages which are NOT JSON.
-        # I should filter lines.
 
         lines = result.stdout.splitlines()
         json_str = ""
@@ -52,6 +46,10 @@ def run_cpp_solver(L, n_val, operator, k_arnoldi=50):
             return None
 
         data = json.loads(json_str)
+
+        # Report time
+        if "time_elapsed" in data:
+            print(f"  C++ Time Elapsed: {data['time_elapsed']:.4f}s")
 
         # Reconstruct Hessenberg matrix
         h_json = data['hessenberg_matrix']
@@ -118,12 +116,6 @@ def analyze_scaling_cpp(L_values, n_val, operator='H', output_filename="eigenval
                 Lambda_L = eigenvalues[0]
                 print(f"  Leading eigenvalue (LM): {Lambda_L}")
 
-                # Calculate f_L
-                # Use magnitude if complex? Or real part of log?
-                # Usually f_L = log(Lambda) / Volume.
-                # If Lambda is complex, log is complex.
-                # We take real part of f_L.
-
                 val_log = np.log(Lambda_L)
                 f_L = val_log / (3 * L)
                 f_L_real = np.real(f_L)
@@ -138,6 +130,7 @@ def analyze_scaling_cpp(L_values, n_val, operator='H', output_filename="eigenval
                 results_data["scaling_data"].append({
                     "L": L,
                     "dim": dim,
+                    "time_elapsed": data.get("time_elapsed", 0.0),
                     "leading_eigenvalue": {
                         "real": float(np.real(Lambda_L)),
                         "imag": float(np.imag(Lambda_L)),
