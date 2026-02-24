@@ -111,7 +111,6 @@ def analyze_scaling(L_values, n_value, operator='H', output_filename="eigenvalue
         print(f"A (f_inf): {f_inf_fit}")
         print(f"B (2*f_sur): {B_fit} => f_sur = {f_sur_fit}")
         print(f"C (-pi*v_F*c/24): {C_fit} => v_F*c = {vF_c_fit}")
-        print(f"Variance of fit parameters: {pcov}")
 
         results_data["scaling_parameters"] = {
             "model": "f_L = A + B/L + C/L^2",
@@ -187,11 +186,11 @@ def analyze_scaling(L_values, n_value, operator='H', output_filename="eigenvalue
         print("Not enough data points for fit (need at least 3).")
 
 if __name__ == "__main__":
-    L_range = [2, 3, 4, 5, 6, 7]
-    n_val = 0.5
+    L_range = [2, 3, 4, 5]
+    n_val = 1.0
 
     # Analyze H
-    #analyze_scaling(L_range, n_val, operator='H')
+    analyze_scaling(L_range, n_val, operator='H')
 
     # Analyze T
     print("\n" + "#" * 80 + "\n")
