@@ -519,20 +519,63 @@ std::vector<std::vector<Complex>> Sl3Hecke::arnoldi(int k, int start_idx, char o
         for(int d=0; d<dim; ++d) norm_w += std::norm(w[d]);
         norm_w = std::sqrt(norm_w);
 
-        h[j][j+1] = norm_w; // Note: h is stored as [column][row] effectively in my indexing above?
-        // Wait, standard h is (k+1) x k. h_{i,j}.
-        // I used h[j][i] above which is h_{i,j}.
-        // So h[j][j+1] is h_{j+1, j}. Correct.
+        if (j + 1 < k + 1) h[j][j+1] = norm_w; // h[j][j+1] is valid if k+1 columns? No h is (k, k+1)
+        // h[j] is vector of size k+1.
 
         if (norm_w < 1e-12) {
-            std::cout << "Arnoldi breakdown at step " << j << std::endl;
-            return h; // Return what we have
+            // Arnoldi breakdown at step j.
+            // We have a (j+1) x (j+1) Hessenberg matrix ideally (projected on j+1 vectors).
+            // h is size k x (k+1).
+            // We filled columns 0..j.
+            // Row indices go up to j+1 (due to norm_w stored at h[j][j+1]).
+
+            // Return square matrix (j+1) x (j+1)
+            int sub_k = j + 1;
+            std::vector<std::vector<Complex>> H_breakdown(sub_k, std::vector<Complex>(sub_k, 0.0));
+
+            for(int row=0; row<sub_k; ++row) {
+                for(int col=0; col<sub_k; ++col) {
+                    // h stores columns. h[col] is vector.
+                    // We need h[col][row].
+                    if(col < k && row < h[col].size())
+                        H_breakdown[row][col] = h[col][row];
+                }
+            }
+            return H_breakdown;
         }
 
-        if (j < k) {
-            for(int d=0; d<dim; ++d) Q[j+1][d] = w[d] / norm_w;
+        if (j < k) { // if j=k-1, we don't need Q[k] unless we continue
+             // if j < k-1 ? No, we need Q[j+1] for next step.
+             // If j = k-1, we are done with loop.
+             // But we usually compute h[k-1][k] (residual norm).
+             if (j < k - 1)
+                for(int d=0; d<dim; ++d) Q[j+1][d] = w[d] / norm_w;
         }
     }
 
-    return h;
+    // Return square matrix k x k for eigenvalues?
+    // h is vector<vector> of size k x (k+1).
+    // Let's create a proper k x k square matrix to return.
+
+    std::vector<std::vector<Complex>> H_square(k, std::vector<Complex>(k, 0.0));
+    for(int j=0; j<k; ++j) {
+        for(int i=0; i<k; ++i) {
+            if (i < h[j].size()) H_square[j][i] = h[j][i];
+        }
+    }
+
+    // We return H_square. But wait, if k > dim (breakdown handled inside), we might have smaller.
+    // But here we are at full k.
+    // Also, my h indexing is h[col][row].
+    // Standard matrix indexing is M[row][col].
+    // So H_square[row][col] should be h[col][row].
+
+    std::vector<std::vector<Complex>> H_final(k, std::vector<Complex>(k, 0.0));
+    for(int row=0; row<k; ++row) {
+        for(int col=0; col<k; ++col) {
+            H_final[row][col] = h[col][row];
+        }
+    }
+
+    return H_final;
 }
