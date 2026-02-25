@@ -175,21 +175,21 @@ class SymbolicHeckeBuilder:
         print(f"Non-zero entries: {len(non_zero_entries)} (Sparsity: {len(non_zero_entries)/(self.dim**2)*100:.1f}%)")
 
         # 3. Active Vectors (Rows/Cols)
-        print(f"Active Row Indices (Image support): {sorted(list(active_rows))}")
-        print(f"Active Column Indices (Source support): {sorted(list(active_cols))}")
+        #print(f"Active Row Indices (Image support): {sorted(list(active_rows))}")
+        #print(f"Active Column Indices (Source support): {sorted(list(active_cols))}")
 
         # Print list of non-zero entries? If too many, maybe skip.
         # "keep of list of non-zero entries" - user asked for it.
         # Assuming for small L it's fine.
-        print("\nNon-zero Entries List (row, col -> value):")
-        for r, c, val in non_zero_entries:
-            row_basis = self.basis_strings[r]
-            col_basis = self.basis_strings[c]
-            print(f"  ({r}, {c}) -> {val}")
+        #print("\nNon-zero Entries List (row, col -> value):")
+        #for r, c, val in non_zero_entries:
+            #row_basis = self.basis_strings[r]
+            #col_basis = self.basis_strings[c]
+            #print(f"  ({r}, {c}) -> {val}")
             # print(f"    Basis[{r}] (Row): {row_basis}")
             # print(f"    Basis[{c}] (Col): {col_basis}")
 
-def generate_symbolic_matrices(L_list=[2, 3]):
+def generate_symbolic_matrices(L_list=[2, 3, 4, 5]):
     for L in L_list:
         print(f"\nGenerating symbolic matrices for L={L}...")
         builder = SymbolicHeckeBuilder(L)

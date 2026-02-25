@@ -90,6 +90,48 @@ def analyze_scaling(L_values, n_value, operator='H', output_filename="eigenvalue
             import traceback
             traceback.print_exc()
 
+
+# 2. Mathematica Output
+        # {{L,f_L}, {L+1,f_{L+1}},...}
+        mathematica_pairs = []
+        for l, f in zip(L_array, f_L_values):
+            mathematica_pairs.append(f"{{{l}, {f}}}")
+
+        mathematica_str = "{" + ", ".join(mathematica_pairs) + "}"
+        m_filename = f"{operator}_data_L_fL.m"
+        with open(m_filename, 'w') as f:
+            f.write(f"(* Data for {operator}, n={n_value} *)\n")
+            f.write(f"data{operator} = {mathematica_str};\n")
+        print(f"Saved Mathematica data to '{m_filename}'")
+
+        # Plotting Eigenvalue Distribution for largest L
+        max_L = max(L_values)
+        if max_L in eigenvalues_by_L:
+            evals = eigenvalues_by_L[max_L]
+            plt.figure(figsize=(8, 8))
+            plt.scatter(np.real(evals), np.imag(evals), marker='.', alpha=0.6)
+            plt.xlabel(r'Re($\lambda$)')
+            plt.ylabel(r'Im($\lambda$)')
+            plt.title(f'Eigenvalue Distribution (L={max_L}, Operator={operator})')
+            plt.grid(True)
+            plt.axis('equal')
+            dist_filename = f'eigenvalue_dist_{operator}.png'
+            plt.savefig(dist_filename)
+            print(f"Saved eigenvalue distribution plot to '{dist_filename}'")
+
+        # Data Table
+        print("\nData Table:")
+        print(f"{'L':<5} | {'1/L^2':<10} | {'Lambda_L (Leading)':<30} | {'f_L (Real)':<15}")
+        print("-" * 70)
+        for i, L in enumerate(L_values):
+            if i < len(leading_eigenvalues):
+                lam = leading_eigenvalues[i]
+                f = f_L_values[i]
+                inv_l2 = 1.0 / (L**2)
+                print(f"{L:<5} | {inv_l2:<10.5f} | {str(lam):<30} | {f:<15.6f}")
+
+
+
     # Scaling Fit
     if len(f_L_values) >= 3:
         def scaling_model(L, A, B, C):
@@ -170,50 +212,13 @@ def analyze_scaling(L_values, n_value, operator='H', output_filename="eigenvalue
         plt.grid(True)
         plt.savefig(f'scaling_fit_{operator}.png')
 
-        # 2. Mathematica Output
-        # {{L,f_L}, {L+1,f_{L+1}},...}
-        mathematica_pairs = []
-        for l, f in zip(L_array, f_L_values):
-            mathematica_pairs.append(f"{{{l}, {f}}}")
-
-        mathematica_str = "{" + ", ".join(mathematica_pairs) + "}"
-        m_filename = f"{operator}_data_L_fL.m"
-        with open(m_filename, 'w') as f:
-            f.write(f"(* Data for {operator}, n={n_value} *)\n")
-            f.write(f"data{operator} = {mathematica_str};\n")
-        print(f"Saved Mathematica data to '{m_filename}'")
-
-        # Plotting Eigenvalue Distribution for largest L
-        max_L = max(L_values)
-        if max_L in eigenvalues_by_L:
-            evals = eigenvalues_by_L[max_L]
-            plt.figure(figsize=(8, 8))
-            plt.scatter(np.real(evals), np.imag(evals), marker='.', alpha=0.6)
-            plt.xlabel(r'Re($\lambda$)')
-            plt.ylabel(r'Im($\lambda$)')
-            plt.title(f'Eigenvalue Distribution (L={max_L}, Operator={operator})')
-            plt.grid(True)
-            plt.axis('equal')
-            dist_filename = f'eigenvalue_dist_{operator}.png'
-            plt.savefig(dist_filename)
-            print(f"Saved eigenvalue distribution plot to '{dist_filename}'")
-
-        # Data Table
-        print("\nData Table:")
-        print(f"{'L':<5} | {'1/L^2':<10} | {'Lambda_L (Leading)':<30} | {'f_L (Real)':<15}")
-        print("-" * 70)
-        for i, L in enumerate(L_values):
-            if i < len(leading_eigenvalues):
-                lam = leading_eigenvalues[i]
-                f = f_L_values[i]
-                inv_l2 = 1.0 / (L**2)
-                print(f"{L:<5} | {inv_l2:<10.5f} | {str(lam):<30} | {f:<15.6f}")
+        
 
     else:
         print("Not enough data points for fit (need at least 3).")
 
 if __name__ == "__main__":
-    L_range = [2,3,4,5,6,7]
+    L_range = [8]
     n_val = 0.25
 
     # Analyze H
