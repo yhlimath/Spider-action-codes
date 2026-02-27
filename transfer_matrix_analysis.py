@@ -169,8 +169,8 @@ def analyze_transfer_matrix(L_values=[2, 3, 4], n_range=np.arange(0.8, 1.3, 0.1)
 
 if __name__ == "__main__":
     # Define range
-    n_values = np.arange(0.01, 2.5, 0.01) # 0.8, 0.9, 1.0, 1.1, 1.2
+    n_values = np.arange(0.8, 1.25, 0.1) # 0.8, 0.9, 1.0, 1.1, 1.2
     # L values: 2, 3, 4. (L=5 takes too long for interaction loop, ~2.5 mins per point * 5 points = 12 mins. Might be ok? Let's stick to 2,3,4 for speed unless user insists on precision)
     # The user said "I'd like to set also the size L".
     # I will use 2,3,4 for quick response.
-    analyze_transfer_matrix(L_values=[3, 4, 5, 6], n_range=n_values)
+    analyze_transfer_matrix(L_values=[2, 3, 4], n_range=n_values)
