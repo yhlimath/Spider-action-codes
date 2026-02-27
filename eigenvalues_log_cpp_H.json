@@ -12,7 +12,7 @@
         {
             "L": 2,
             "dim": 5,
-            "time_elapsed": 0.000281274,
+            "time_elapsed": 0.000253961,
             "leading_eigenvalue": {
                 "real": 5.732050807568882,
                 "imag": 0.0,
@@ -41,7 +41,7 @@
         {
             "L": 3,
             "dim": 42,
-            "time_elapsed": 0.167839,
+            "time_elapsed": 0.167133,
             "leading_eigenvalue": {
                 "real": 9.411474127809749,
                 "imag": 0.0,
@@ -94,7 +94,7 @@
         {
             "L": 4,
             "dim": 462,
-            "time_elapsed": 8.2501,
+            "time_elapsed": 8.19506,
             "leading_eigenvalue": {
                 "real": 13.078116022520124,
                 "imag": 0.0,
@@ -147,7 +147,7 @@
         {
             "L": 5,
             "dim": 6006,
-            "time_elapsed": 307.375,
+            "time_elapsed": 306.847,
             "leading_eigenvalue": {
                 "real": 16.73968131825729,
                 "imag": 5.6580564241571496e-18,

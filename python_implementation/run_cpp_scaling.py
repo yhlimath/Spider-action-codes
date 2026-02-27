@@ -11,8 +11,22 @@ def run_cpp_solver(L, n_val, operator, k_arnoldi=50):
     """
     Run the C++ solver and return the output data.
     """
+    # Determine path relative to this script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Assuming cpp_implementation is sibling to python_implementation or in root?
+    # Original structure: root/cpp_implementation and root/python_implementation
+    # So relative path is ../cpp_implementation
+
+    cpp_dir = os.path.join(script_dir, "..", "cpp_implementation")
+    executable = os.path.join(cpp_dir, "main_scaling")
+
+    if not os.path.exists(executable):
+        # Try compiling
+        print("Compiling C++ code...")
+        subprocess.run(["make", "-C", cpp_dir], check=True)
+
     cmd = [
-        "./cpp_implementation/main_scaling",
+        executable,
         str(L),
         str(np.real(n_val)),
         str(np.imag(n_val)),
@@ -89,10 +103,6 @@ def run_cpp_solver(L, n_val, operator, k_arnoldi=50):
 def analyze_scaling_cpp(L_values, n_val, operator='H', output_filename="eigenvalues_log_cpp.json"):
     print(f"Starting Massive Finite-Size Scaling Analysis (C++ Backend) for n = {n_val} (Operator: {operator})")
     print("=" * 80)
-
-    # Compile first
-    print("Compiling C++ code...")
-    subprocess.run(["make", "-C", "cpp_implementation"], check=True)
 
     results_data = {
         "timestamp": "",
