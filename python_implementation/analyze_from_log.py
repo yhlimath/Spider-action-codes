@@ -18,7 +18,7 @@ def analyze_json(filename):
 
     operator = data.get("operator", "Unknown")
     n_val = data.get("n_value", "Unknown")
-    scaling_data = data.get("scaling_data", [])
+    scaling_data = data.get("data_by_n", [])
 
     if not scaling_data:
         print("No scaling data found in JSON.")
