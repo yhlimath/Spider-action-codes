@@ -29,8 +29,8 @@ def analyze_blocks(S_list=[4, 5], n_val=1.2345):
                 v[j] = 1.0
                 T_all[:, j] = solver_all.apply_T(v)
 
-            np.save(os.path.join(out_dir, f"T_all_S{S}.npy"), T_all)
-            print(f"  Saved full T matrix to T_all_S{S}.npy")
+            #np.save(os.path.join(out_dir, f"T_all_S{S}.npy"), T_all)
+            #print(f"  Saved full T matrix to T_all_S{S}.npy")
 
         # 2. Find all valid (x, y) endpoints
         endpoints = set()
@@ -52,19 +52,19 @@ def analyze_blocks(S_list=[4, 5], n_val=1.2345):
             total_dim_blocks += dim_block
             print(f"    Sector ({x},{y}): dim = {dim_block}")
 
-            if dim_block <= 100:
-                T_block = np.zeros((dim_block, dim_block), dtype=complex)
-                for j in range(dim_block):
-                    v = np.zeros(dim_block, dtype=complex)
-                    v[j] = 1.0
-                    T_block[:, j] = solver_block.apply_T(v)
+            
+            T_block = np.zeros((dim_block, dim_block), dtype=complex)
+            for j in range(dim_block):
+                v = np.zeros(dim_block, dtype=complex)
+                v[j] = 1.0
+                T_block[:, j] = solver_block.apply_T(v)
 
-                # Check rank
-                rank = np.linalg.matrix_rank(T_block, tol=1e-10)
-                print(f"      Rank: {rank}")
-                np.save(os.path.join(out_dir, f"T_block_S{S}_x{x}_y{y}.npy"), T_block)
+            # Check rank
+            rank = np.linalg.matrix_rank(T_block, tol=1e-10)
+            print(f"      Rank: {rank}")
+            #np.save(os.path.join(out_dir, f"T_block_S{S}_x{x}_y{y}.npy"), T_block)
 
         print(f"  Sum of block dimensions: {total_dim_blocks} (Matches entire space: {total_dim_blocks == dim_all})")
 
 if __name__ == "__main__":
-    analyze_blocks()
+    analyze_blocks(S_list=[12], n_val=2)
