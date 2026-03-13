@@ -6,7 +6,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from sl3_hecke import Sl3HeckeArnoldi
 
-def estimate_T_rank(L, n_val=2, sample_ratio=0.05):
+def estimate_T_rank(L, n_val=1.2345, sample_ratio=0.05):
     print(f"Estimating Rank of Transfer Matrix T for L={L}")
     print(f"Using generic n={n_val} to avoid accidental zeroes.")
     print("=" * 60)
@@ -81,4 +81,4 @@ def estimate_T_rank(L, n_val=2, sample_ratio=0.05):
     return rank
 
 if __name__ == "__main__":
-    estimate_T_rank(L=7, n_val=3.14, sample_ratio=0.0005)
+    estimate_T_rank(L=4, sample_ratio=0.05)

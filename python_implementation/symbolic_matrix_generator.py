@@ -325,4 +325,4 @@ if __name__ == "__main__":
 
     # Generate magnetic module matrices (S=3, 4)
     # S=3 dim=3, S=4 dim=9
-    generate_magnetic_symbolic_matrices(S_list=[6])
+    generate_magnetic_symbolic_matrices(S_list=[3, 4])
