@@ -1,21 +1,10 @@
 (* Diagonalization Analysis for S=5, x=0, y=1 *)
 
-OriginalBasis = {
-{1, 1, 0, 0, -1},
-{1, 1, 0, -1, 0},
-{1, 0, 1, 0, -1},
-{1, 0, 1, -1, 0},
-{1, 0, -1, 1, 0}
-};
-
 ActiveIndices = {1, 5};
 
-OriginalMatrix = {
-{n^2 + 1, n, n^3, n^2, n},
-{0, 0, 0, 0, 0},
-{0, 0, 0, 0, 0},
-{0, 0, 0, 0, 0},
-{n, n^2, 0, n^3, n^2}
+ActiveBasis = {
+{1, 1, 0, 0, -1},
+{1, 0, -1, 1, 0}
 };
 
 RestrictedSubmatrix = {

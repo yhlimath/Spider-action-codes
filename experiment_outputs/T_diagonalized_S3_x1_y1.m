@@ -1,15 +1,9 @@
 (* Diagonalization Analysis for S=3, x=1, y=1 *)
 
-OriginalBasis = {
-{1, 1, 0},
-{1, 0, 1}
-};
-
 ActiveIndices = {1};
 
-OriginalMatrix = {
-{1, n},
-{0, 0}
+ActiveBasis = {
+{1, 1, 0}
 };
 
 RestrictedSubmatrix = {
