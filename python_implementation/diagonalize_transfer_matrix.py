@@ -92,8 +92,8 @@ def diagonalize_blocks(S_list=[3, 4]):
             P_sub, D_sub = None, None
 
             try:
-                P_sub, D_sub = T_sub.diagonalize()
-                is_diagonalized = True
+                #P_sub, D_sub = T_sub.diagonalize()
+                #is_diagonalized = True
                 print("    Successfully diagonalized submatrix.")
             except sp.MatrixError as e:
                 print(f"    Could not diagonalize submatrix symbolically: {e}")
@@ -147,4 +147,4 @@ def diagonalize_blocks(S_list=[3, 4]):
 
 if __name__ == "__main__":
     # S=5 might be too slow for symbolic diagonalization, keep it to 3, 4
-    diagonalize_blocks(S_list=[3, 4, 5])
+    diagonalize_blocks(S_list=[10])

@@ -81,4 +81,4 @@ def estimate_T_rank(L, n_val=1.2345, sample_ratio=0.05):
     return rank
 
 if __name__ == "__main__":
-    estimate_T_rank(L=4, sample_ratio=0.05)
+    estimate_T_rank(L=7, sample_ratio=0.005)
