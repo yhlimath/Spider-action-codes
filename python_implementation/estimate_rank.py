@@ -6,7 +6,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from sl3_hecke import Sl3HeckeArnoldi
 
-def estimate_T_rank(L=None, n_val=1.2345, sample_ratio=0.05, is_magnetic=False, m=None, x=None, y=None, use_all_valid=False):
+def estimate_T_rank(L=None, n_val=1.2345, sample_ratio=0.5, is_magnetic=False, m=None, x=None, y=None, use_all_valid=False):
     if is_magnetic:
         if use_all_valid:
             print(f"Estimating Rank of Transfer Matrix T for magnetic entire space (S={m})")
@@ -27,11 +27,10 @@ def estimate_T_rank(L=None, n_val=1.2345, sample_ratio=0.05, is_magnetic=False, 
         return 0, []
 
     # 1. Sample index set I
-    num_samples = max(1, int(dim * sample_ratio))
-    print(f"Sampling {num_samples} vectors (ratio: {sample_ratio}) to find active subspace...")
+    # Increase sample ratio to 0.5 or minimum 5 vectors for robust estimation.
+    num_samples = max(min(dim, 5), int(dim * sample_ratio))
+    print(f"Sampling {num_samples} vectors to find active subspace...")
 
-    # Use fixed seed for reproducibility across small runs, or just sample
-    # Let's try multiple samples or a larger ratio to be safe on the estimate
     I = random.sample(range(dim), num_samples)
 
     # 2. Find active index set J
@@ -70,8 +69,6 @@ def estimate_T_rank(L=None, n_val=1.2345, sample_ratio=0.05, is_magnetic=False, 
     # 4. Compute rank
     rank = np.linalg.matrix_rank(T_restricted, tol=1e-10)
 
-    # Let's also check rank of full matrix for L=4 to be absolutely sure the estimation is good
-    # For L=4, dim is 462, building full matrix is fast.
     # Only verify full matrix if dim is reasonably small
     if dim <= 500:
         print("\nVerifying with full matrix construction (since dim is small)...")
@@ -83,6 +80,10 @@ def estimate_T_rank(L=None, n_val=1.2345, sample_ratio=0.05, is_magnetic=False, 
             T_full[:, j] = w
         full_rank = np.linalg.matrix_rank(T_full, tol=1e-10)
         print(f"Actual Rank of T (from full matrix): {full_rank}")
+        if rank != full_rank:
+            print(f"WARNING: Estimated rank ({rank}) differs from actual ({full_rank}). Try increasing sample_ratio.")
+            # If we missed it, return the actual rank for logging correctness in this small dim case.
+            rank = full_rank
 
     elapsed = time.time() - start_t
     print(f"\nEstimated Rank of T: {rank}")
@@ -91,12 +92,12 @@ def estimate_T_rank(L=None, n_val=1.2345, sample_ratio=0.05, is_magnetic=False, 
 
     return rank, J
 
-def get_active_indices(L=None, n_val=1.2345, sample_ratio=0.05, is_magnetic=False, m=None, x=None, y=None, use_all_valid=False):
+def get_active_indices(L=None, n_val=1.2345, sample_ratio=0.5, is_magnetic=False, m=None, x=None, y=None, use_all_valid=False):
     """Utility function to just get J efficiently without full printing"""
     solver = Sl3HeckeArnoldi(L=L, n_value=n_val, is_magnetic=is_magnetic, m=m, x=x, y=y, use_all_valid=use_all_valid)
     dim = solver.dim
     if dim == 0: return []
-    num_samples = max(1, int(dim * sample_ratio))
+    num_samples = max(min(dim, 5), int(dim * sample_ratio))
     I = random.sample(range(dim), num_samples)
     J = set()
     for i in I:
@@ -109,9 +110,8 @@ def get_active_indices(L=None, n_val=1.2345, sample_ratio=0.05, is_magnetic=Fals
     return sorted(list(J))
 
 if __name__ == "__main__":
-    estimate_T_rank(L=7, sample_ratio=0.005)
     print("--- Vacuum Sector ---")
-    estimate_T_rank(L=4, sample_ratio=0.05)
+    estimate_T_rank(L=4, sample_ratio=0.5)
 
     print("\n--- Magnetic Sector (Entire Space S=4) ---")
     estimate_T_rank(is_magnetic=True, m=4, use_all_valid=True)

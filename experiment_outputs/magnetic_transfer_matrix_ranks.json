@@ -1,0 +1,172 @@
+{
+    "3": {
+        "entire_dim": 4,
+        "sectors": {
+            "0,0": {
+                "dim": 1,
+                "rank": 0,
+                "active_subspace_size": 0
+            },
+            "1,1": {
+                "dim": 2,
+                "rank": 1,
+                "active_subspace_size": 1
+            },
+            "3,0": {
+                "dim": 1,
+                "rank": 0,
+                "active_subspace_size": 0
+            }
+        },
+        "total_rank": 1,
+        "total_active_subspace": 1
+    },
+    "4": {
+        "entire_dim": 9,
+        "sectors": {
+            "0,2": {
+                "dim": 2,
+                "rank": 1,
+                "active_subspace_size": 1
+            },
+            "1,0": {
+                "dim": 3,
+                "rank": 1,
+                "active_subspace_size": 2
+            },
+            "2,1": {
+                "dim": 3,
+                "rank": 0,
+                "active_subspace_size": 0
+            },
+            "4,0": {
+                "dim": 1,
+                "rank": 0,
+                "active_subspace_size": 0
+            }
+        },
+        "total_rank": 2,
+        "total_active_subspace": 3
+    },
+    "5": {
+        "entire_dim": 21,
+        "sectors": {
+            "0,1": {
+                "dim": 5,
+                "rank": 2,
+                "active_subspace_size": 2
+            },
+            "1,2": {
+                "dim": 5,
+                "rank": 1,
+                "active_subspace_size": 1
+            },
+            "2,0": {
+                "dim": 6,
+                "rank": 1,
+                "active_subspace_size": 1
+            },
+            "3,1": {
+                "dim": 4,
+                "rank": 0,
+                "active_subspace_size": 0
+            },
+            "5,0": {
+                "dim": 1,
+                "rank": 0,
+                "active_subspace_size": 0
+            }
+        },
+        "total_rank": 4,
+        "total_active_subspace": 4
+    },
+    "6": {
+        "entire_dim": 51,
+        "sectors": {
+            "0,0": {
+                "dim": 5,
+                "rank": 1,
+                "active_subspace_size": 2
+            },
+            "0,3": {
+                "dim": 5,
+                "rank": 1,
+                "active_subspace_size": 1
+            },
+            "1,1": {
+                "dim": 16,
+                "rank": 1,
+                "active_subspace_size": 2
+            },
+            "2,2": {
+                "dim": 9,
+                "rank": 0,
+                "active_subspace_size": 0
+            },
+            "3,0": {
+                "dim": 10,
+                "rank": 0,
+                "active_subspace_size": 0
+            },
+            "4,1": {
+                "dim": 5,
+                "rank": 0,
+                "active_subspace_size": 0
+            },
+            "6,0": {
+                "dim": 1,
+                "rank": 0,
+                "active_subspace_size": 0
+            }
+        },
+        "total_rank": 3,
+        "total_active_subspace": 5
+    },
+    "7": {
+        "entire_dim": 127,
+        "sectors": {
+            "0,2": {
+                "dim": 21,
+                "rank": 3,
+                "active_subspace_size": 3
+            },
+            "1,0": {
+                "dim": 21,
+                "rank": 3,
+                "active_subspace_size": 3
+            },
+            "1,3": {
+                "dim": 14,
+                "rank": 1,
+                "active_subspace_size": 1
+            },
+            "2,1": {
+                "dim": 35,
+                "rank": 1,
+                "active_subspace_size": 1
+            },
+            "3,2": {
+                "dim": 14,
+                "rank": 0,
+                "active_subspace_size": 0
+            },
+            "4,0": {
+                "dim": 15,
+                "rank": 0,
+                "active_subspace_size": 0
+            },
+            "5,1": {
+                "dim": 6,
+                "rank": 0,
+                "active_subspace_size": 0
+            },
+            "7,0": {
+                "dim": 1,
+                "rank": 0,
+                "active_subspace_size": 0
+            }
+        },
+        "total_rank": 8,
+        "total_active_subspace": 8
+    }
+}

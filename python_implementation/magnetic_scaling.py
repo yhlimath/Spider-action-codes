@@ -156,4 +156,4 @@ if __name__ == "__main__":
     # A sector (x,y) appears when S = 2x + y + 3k.
     # To get 3 points, we need a span of 9. Let's use S_values=[3, 4, 5, 6, 7, 8, 9]
     # Computation might take longer but necessary for block scaling.
-    analyze_magnetic_scaling(S_values=[9,10,11,12,13])
+    analyze_magnetic_scaling(S_values=[3, 4, 5, 6, 7, 8, 9])
