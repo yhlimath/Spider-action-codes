@@ -4,6 +4,8 @@ import sympy as sp
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from symbolic_matrix_generator import SymbolicHeckeBuilder
+from estimate_rank import get_active_indices
+from sl3_hecke import Polynomial
 
 def poly_to_sympy(poly, n_sym):
     """Convert Polynomial object to sympy expression"""
@@ -57,35 +59,74 @@ def diagonalize_blocks(S_list=[3, 4]):
 
             print(f"  Sector ({x},{y}), dim={dim}")
 
-            # Build symbolic matrix
-            T_poly = builder.get_T_matrix()
+            # 1. Use estimate_rank logic to quickly find active indices J
+            J = get_active_indices(is_magnetic=True, m=S, x=x, y=y, sample_ratio=0.1) # Use higher ratio for safety on small dims
 
-            # Convert to sympy Matrix
-            T_sympy = sp.zeros(dim, dim)
-            for i in range(dim):
-                for j in range(dim):
-                    T_sympy[i, j] = poly_to_sympy(T_poly[i][j], n_sym)
+            print(f"    Active indices (J) found via sampling: {J}")
 
-            # Identify non-zero rows
-            non_zero_rows = []
-            for i in range(dim):
-                if not T_sympy.row(i).is_zero_matrix:
-                    non_zero_rows.append(i)
-
-            print(f"    Non-zero rows (Active indices): {non_zero_rows}")
-
-            if not non_zero_rows:
-                print("    Matrix is completely zero.")
+            if not J:
+                print("    Matrix is completely zero (or estimated so).")
                 continue
 
-            # Extract submatrix T_sub = T[J, J] where J = non_zero_rows
-            # Wait, the columns must also be restricted.
-            # If T maps everything into span(e_i | i in J), then T_sub captures the non-trivial dynamics.
-            J = non_zero_rows
+            # 2. Build ONLY the restricted symbolic matrix T_{J x J}
+            # T_poly = builder.get_T_matrix() builds the whole thing, which is slow.
+            # We will manually build T[J, J] using the builder's _apply_e_k logic.
+
+            # Replicate the logic from get_T_matrix but restricted
+            num_generators = S - 1
+            odd_indices = range(1, num_generators + 1, 2)
+            even_indices = range(2, num_generators + 1, 2)
+
+            T_sub_poly = [[Polynomial() for _ in range(len(J))] for _ in range(len(J))]
+
+            # We only evaluate columns j in J
+            for j_sub, orig_j in enumerate(J):
+                current_state = {orig_j: Polynomial.constant(1)}
+
+                # Apply odd generators
+                for k in odd_indices:
+                    next_state = {}
+                    for idx, poly in current_state.items():
+                        s_current = builder.basis_strings[idx]
+                        results = builder._apply_e_k(s_current, k)
+                        for res_poly, new_s in results:
+                            new_idx = builder.string_to_idx.get(tuple(new_s))
+                            if new_idx is not None:
+                                combined_poly = poly * res_poly
+                                if new_idx in next_state:
+                                    next_state[new_idx] = next_state[new_idx] + combined_poly
+                                else:
+                                    next_state[new_idx] = combined_poly
+                    current_state = next_state
+
+                # Apply even generators
+                for k in even_indices:
+                    next_state = {}
+                    for idx, poly in current_state.items():
+                        s_current = builder.basis_strings[idx]
+                        results = builder._apply_e_k(s_current, k)
+                        for res_poly, new_s in results:
+                            new_idx = builder.string_to_idx.get(tuple(new_s))
+                            if new_idx is not None:
+                                combined_poly = poly * res_poly
+                                if new_idx in next_state:
+                                    next_state[new_idx] = next_state[new_idx] + combined_poly
+                                else:
+                                    next_state[new_idx] = combined_poly
+                    current_state = next_state
+
+                # Populate restricted column j_sub
+                for idx, poly in current_state.items():
+                    # We only care about rows in J
+                    if idx in J:
+                        i_sub = J.index(idx)
+                        T_sub_poly[i_sub][j_sub] = poly
+
+            # Convert to sympy Matrix
             T_sub = sp.zeros(len(J), len(J))
-            for r_idx, orig_r in enumerate(J):
-                for c_idx, orig_c in enumerate(J):
-                    T_sub[r_idx, c_idx] = T_sympy[orig_r, orig_c]
+            for i in range(len(J)):
+                for j in range(len(J)):
+                    T_sub[i, j] = poly_to_sympy(T_sub_poly[i][j], n_sym)
 
             # Try to diagonalize T_sub
             is_diagonalized = False
@@ -106,18 +147,16 @@ def diagonalize_blocks(S_list=[3, 4]):
             with open(filename, 'w') as f:
                 f.write(f"(* Diagonalization Analysis for S={S}, x={x}, y={y} *)\n\n")
 
-                # Original basis
-                basis_strs = []
-                for s in builder.basis_strings:
-                    basis_strs.append("{" + ", ".join(map(str, s)) + "}")
-                f.write("OriginalBasis = {\n" + ",\n".join(basis_strs) + "\n};\n\n")
-
                 # Active indices (1-based for Mathematica)
                 math_J = [idx + 1 for idx in J]
                 f.write(f"ActiveIndices = {{{', '.join(map(str, math_J))}}};\n\n")
 
-                # Original Matrix
-                f.write("OriginalMatrix = " + matrix_to_mathematica(T_sympy) + ";\n\n")
+                # Original basis restricted to J
+                basis_strs = []
+                for j in J:
+                    s = builder.basis_strings[j]
+                    basis_strs.append("{" + ", ".join(map(str, s)) + "}")
+                f.write("ActiveBasis = {\n" + ",\n".join(basis_strs) + "\n};\n\n")
 
                 # Restricted Submatrix
                 f.write("RestrictedSubmatrix = " + matrix_to_mathematica(T_sub) + ";\n\n")
