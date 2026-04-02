@@ -138,3 +138,38 @@ def apply_tl(state, i, n):
             return []
 
     return []
+
+def apply_E_i(state, i, q):
+    """
+    Operator E_i = TL_i + q * V^(1)_i + (1/q) * V^(2)_i + V^(3)_i + V^(4)_i.
+    Uses sympy for symbolic variables q.
+    n = q + 1/q is used for the TL loop weight.
+    Returns a list of (state, weight).
+    """
+    import sympy
+
+    # Calculate n
+    n = q + 1/q
+
+    results = []
+
+    # Add TL
+    results.extend(apply_tl(state, i, n))
+
+    # Add q * V^(1)
+    for res_state, weight in apply_half_vacuum_1(state, i):
+        results.append((res_state, weight * q))
+
+    # Add (1/q) * V^(2)
+    for res_state, weight in apply_half_vacuum_2(state, i):
+        results.append((res_state, weight / q))
+
+    # Add V^(3)
+    for res_state, weight in apply_half_vacuum_3(state, i):
+        results.append((res_state, weight))
+
+    # Add V^(4)
+    for res_state, weight in apply_half_vacuum_4(state, i):
+        results.append((res_state, weight))
+
+    return results
