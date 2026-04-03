@@ -84,7 +84,39 @@ def analyze_transfer_matrix(L, j):
     # Calculate symbolic rank using sympy Matrix
     sympy_T = sympy.Matrix(T)
     rank = sympy_T.rank()
-    print(f"\nExact symbolic rank of T: {rank}\n")
+    print(f"\nExact symbolic rank of full T: {rank}\n")
+
+    # Group basis states by p (number of 0s)
+    p_groups = {}
+    for i, s in enumerate(states):
+        p = s.count(0)
+        if p not in p_groups:
+            p_groups[p] = []
+        p_groups[p].append(i)
+
+    p_analysis = {}
+    print("Subspaces V^{L,j,p}:")
+    for p in sorted(p_groups.keys(), reverse=True):
+        indices = p_groups[p]
+        dim_p = len(indices)
+
+        # Extract the submatrix T^(p)
+        T_p = []
+        for r in indices:
+            row_p = []
+            for c in indices:
+                row_p.append(T[r][c])
+            T_p.append(row_p)
+
+        rank_p = sympy.Matrix(T_p).rank()
+
+        p_analysis[p] = {
+            "indices": indices,
+            "dimension": dim_p,
+            "rank": rank_p,
+            "matrix": T_p
+        }
+        print(f"  p={p}: Dimension = {dim_p}, Rank of T^(p) = {rank_p}")
 
     # Find invariant subspaces (connected components)
     # We create a directed graph where edge k -> i exists if T_{i,k} != 0
@@ -148,6 +180,33 @@ def analyze_transfer_matrix(L, j):
     import json
     os.makedirs("experiment_outputs", exist_ok=True)
 
+    # Prepare p-subspace data for export
+    json_subspaces = {}
+    m_subspace_strs = []
+    for p, data in p_analysis.items():
+        # JSON formatting
+        json_subspaces[f"p={p}"] = {
+            "dimension": data["dimension"],
+            "rank": int(data["rank"]),
+            "basis": [str(states[idx]) for idx in data["indices"]],
+            "matrix": [[str(val) for val in row] for row in data["matrix"]]
+        }
+
+        # Mathematica formatting
+        m_p_rows = []
+        for row in data["matrix"]:
+            m_p_row = []
+            for val in row:
+                if val == 0:
+                    m_p_row.append("0")
+                else:
+                    m_p_row.append(str(val).replace("**", "^"))
+            m_p_rows.append("{" + ", ".join(m_p_row) + "}")
+        m_p_matrix_str = "{" + ", \n".join(m_p_rows) + "}"
+
+        m_subspace_strs.append(f"TMatrixP[{p}] = {m_p_matrix_str};")
+        m_subspace_strs.append(f"TRankP[{p}] = {data['rank']};")
+
     # JSON output
     out_json = f"experiment_outputs/transfer_matrix_L{L}_j{j}.json"
     json_data = {
@@ -157,7 +216,8 @@ def analyze_transfer_matrix(L, j):
         "rank": int(rank),
         "basis": [str(s) for s in states],
         "invariant_subspaces": [[str(states[idx]) for idx in block] for block in blocks],
-        "matrix": json_rows
+        "matrix": json_rows,
+        "p_subspaces": json_subspaces
     }
     with open(out_json, "w") as f:
         json.dump(json_data, f, indent=2)
@@ -167,7 +227,9 @@ def analyze_transfer_matrix(L, j):
     with open(out_m, "w") as f:
         f.write(f"(* Dilute Temperley-Lieb Transfer Matrix for L={L}, j={j} *)\n")
         f.write(f"TMatrix = {m_matrix_str};\n")
-        f.write(f"TRank = {rank};\n")
+        f.write(f"TRank = {rank};\n\n")
+        f.write("(* Block submatrices T^(p) restricted to V^{L,j,p} *)\n")
+        f.write("\n".join(m_subspace_strs) + "\n")
 
     print(f"\nSaved analysis outputs to {out_json} and {out_m}")
 
