@@ -172,7 +172,7 @@ def analyze_transfer_matrix(L, j):
     print(f"\nSaved analysis outputs to {out_json} and {out_m}")
 
 if __name__ == "__main__":
-    L=3; j=1
+    L=6; j=3
     if len(sys.argv) > 2:
         L = int(sys.argv[1])
         j = int(sys.argv[2])
