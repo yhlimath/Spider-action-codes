@@ -26,6 +26,10 @@ def generate_dtl_states(L, j):
             _generate(current_state + [-1], current_sum - 1)
 
     _generate([], 0)
+
+    # Sort states: first by descending number of 0s, then lexicographically
+    results.sort(key=lambda s: (-s.count(0), s))
+
     return results
 
 def apply_identity(state, i):

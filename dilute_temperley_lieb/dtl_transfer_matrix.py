@@ -121,17 +121,55 @@ def analyze_transfer_matrix(L, j):
         for state_idx in block:
             print(f"    |{state_idx}> = {states[state_idx]}")
 
-    # Also print the explicit matrix
+    # Explicit matrix and Mathematica formatting
     print("\nExplicit Matrix Elements:")
+    m_rows = []
+    json_rows = []
     for r in range(dim):
         row_str = []
+        m_row = []
         for c in range(dim):
             val = T[r][c]
             if val == 0:
                 row_str.append("0")
+                m_row.append("0")
             else:
+                val_str = str(val).replace("**", "^") # Mathematica friendly powers
                 row_str.append(str(val))
+                m_row.append(val_str)
         print("  [" + ", ".join(row_str) + "]")
+        m_rows.append("{" + ", ".join(m_row) + "}")
+        json_rows.append(row_str)
+
+    m_matrix_str = "{" + ", \n".join(m_rows) + "}"
+
+    # Save to files
+    import os
+    import json
+    os.makedirs("experiment_outputs", exist_ok=True)
+
+    # JSON output
+    out_json = f"experiment_outputs/transfer_matrix_L{L}_j{j}.json"
+    json_data = {
+        "L": L,
+        "j": j,
+        "dimension": dim,
+        "rank": int(rank),
+        "basis": [str(s) for s in states],
+        "invariant_subspaces": [[str(states[idx]) for idx in block] for block in blocks],
+        "matrix": json_rows
+    }
+    with open(out_json, "w") as f:
+        json.dump(json_data, f, indent=2)
+
+    # Mathematica output
+    out_m = f"experiment_outputs/transfer_matrix_L{L}_j{j}.m"
+    with open(out_m, "w") as f:
+        f.write(f"(* Dilute Temperley-Lieb Transfer Matrix for L={L}, j={j} *)\n")
+        f.write(f"TMatrix = {m_matrix_str};\n")
+        f.write(f"TRank = {rank};\n")
+
+    print(f"\nSaved analysis outputs to {out_json} and {out_m}")
 
 if __name__ == "__main__":
     L=3; j=1
