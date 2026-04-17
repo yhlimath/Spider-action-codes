@@ -7,7 +7,7 @@ import sympy
 import json
 
 from dilute_temperley_lieb.dtl_transfer_matrix import construct_dtl_transfer_matrix
-from sl3hecke.magnetic_modules import generate_constrained_strings, ed
+from sl3hecke.sl3_hecke import generate_constrained_strings, ed
 from sl3hecke.sl3_hecke import Polynomial
 
 def eval_poly(poly, n_val):
@@ -140,7 +140,7 @@ def evaluate_conjecture_and_export(L, n_val=1.372):
     print(f"  Data exported to {out_path}")
 
 if __name__ == "__main__":
-    L = 4
+    L = 14
     if len(sys.argv) > 1:
         L = int(sys.argv[1])
     evaluate_conjecture_and_export(L)

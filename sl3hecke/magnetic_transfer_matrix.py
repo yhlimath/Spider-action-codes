@@ -6,7 +6,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from sl3_hecke import Sl3HeckeArnoldi
 
-def analyze_blocks(S_list=[4, 5], n_val=1.2345):
+def analyze_blocks(S_list=[6], n_val=1.2345):
     print("Transfer Matrix Block Analysis")
     print("=" * 60)
 
