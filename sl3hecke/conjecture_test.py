@@ -140,7 +140,7 @@ def evaluate_conjecture_and_export(L, n_val=1.372):
     print(f"  Data exported to {out_path}")
 
 if __name__ == "__main__":
-    L = 14
+    L = 10
     if len(sys.argv) > 1:
         L = int(sys.argv[1])
     evaluate_conjecture_and_export(L)
