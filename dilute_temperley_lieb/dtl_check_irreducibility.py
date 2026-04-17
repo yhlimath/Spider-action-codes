@@ -81,8 +81,8 @@ def check_irreducibility(L, j):
     return results
 
 if __name__ == "__main__":
-    L = 10
-    j = 4
+    L = 3
+    j = 1
     if len(sys.argv) > 2:
         L = int(sys.argv[1])
         j = int(sys.argv[2])
