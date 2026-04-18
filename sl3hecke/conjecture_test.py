@@ -27,7 +27,7 @@ def fmt_cplx(c):
     return {"re": float(c.real), "im": float(c.imag)}
 
 def get_numeric_eigensystem(matrix):
-    w, v = np.linalg.eig(matrix)
+    w = np.linalg.eigvals(matrix)
     grouped = []
     visited = [False] * len(w)
     for i in range(len(w)):
@@ -36,18 +36,17 @@ def get_numeric_eigensystem(matrix):
             visited[i] = True
             continue
 
-        group_vecs = [v[:, i].tolist()]
+        mult = 1
         visited[i] = True
 
         for j in range(i+1, len(w)):
             if not visited[j] and np.abs(w[i] - w[j]) < 1e-5:
-                group_vecs.append(v[:, j].tolist())
+                mult += 1
                 visited[j] = True
 
         grouped.append({
             "eigenvalue": fmt_cplx(w[i]),
-            "multiplicity": len(group_vecs),
-            "eigenvectors": [[fmt_cplx(c) for c in vec] for vec in group_vecs]
+            "multiplicity": mult
         })
     # Sort by real part of eigenvalue
     grouped.sort(key=lambda x: x["eigenvalue"] if isinstance(x["eigenvalue"], float) else x["eigenvalue"]["re"])
@@ -55,19 +54,15 @@ def get_numeric_eigensystem(matrix):
 
 def get_symbolic_eigensystem(matrix):
     M = sympy.Matrix(matrix)
-    evs = M.eigenvects()
+    # eigenvals returns dict of {eigenvalue: multiplicity}
+    evs = M.eigenvals()
     grouped = []
-    for val, mult, vecs in evs:
+    for val, mult in evs.items():
         if val == 0: continue
-
-        vecs_list = []
-        for vec in vecs:
-            vecs_list.append([str(sympy.simplify(c)) for c in vec])
 
         grouped.append({
             "eigenvalue": str(sympy.simplify(val)),
-            "multiplicity": mult,
-            "eigenvectors": vecs_list
+            "multiplicity": mult
         })
     # Cannot easily sort symbolic expressions safely, leave as is
     return grouped
@@ -163,6 +158,7 @@ def analyze_dtl(L, j, n_val, is_symbolic):
             eigs = get_numeric_eigensystem(sub_T)
             dtl_data[p] = {
                 "dimension": len(indices),
+                "basis": [str(states_dtl[idx]) for idx in indices],
                 "eigensystem": eigs
             }
     return dtl_data
@@ -201,6 +197,7 @@ def evaluate_conjecture_and_export(L, n_val, is_symbolic):
 
             output_data["sl3_modules"][f"L={L}, x={x}, y={y}"] = {
                 "dimension": dim,
+                "basis": [str(s) for s in basis],
                 "eigensystem": eigs
             }
 
@@ -226,8 +223,8 @@ def evaluate_conjecture_and_export(L, n_val, is_symbolic):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-L", type=int, default=8)
-    parser.add_argument("-n", "--n_val", type=float, default=1)
+    parser.add_argument("-L", type=int, default=3)
+    parser.add_argument("-n", "--n_val", type=float, default=1.372)
     parser.add_argument("--symbolic", action="store_true", help="Enable symbolic computation of eigensystems")
     args = parser.parse_args()
 

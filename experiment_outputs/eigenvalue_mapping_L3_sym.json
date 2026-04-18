@@ -20,25 +20,11 @@
       "eigensystem": [
         {
           "eigenvalue": "1",
-          "multiplicity": 1,
-          "eigenvectors": [
-            [
-              "1/q",
-              "(-q**2 - 1)/q**3",
-              "1"
-            ]
-          ]
+          "multiplicity": 1
         },
         {
           "eigenvalue": "q**2 + 2 + q**(-2)",
-          "multiplicity": 1,
-          "eigenvectors": [
-            [
-              "1/q",
-              "q",
-              "1"
-            ]
-          ]
+          "multiplicity": 1
         }
       ]
     },
@@ -52,14 +38,7 @@
       "eigensystem": [
         {
           "eigenvalue": "1",
-          "multiplicity": 1,
-          "eigenvectors": [
-            [
-              "0",
-              "1/q",
-              "1"
-            ]
-          ]
+          "multiplicity": 1
         }
       ]
     },
@@ -72,13 +51,7 @@
       "eigensystem": [
         {
           "eigenvalue": "1",
-          "multiplicity": 1,
-          "eigenvectors": [
-            [
-              "1",
-              "0"
-            ]
-          ]
+          "multiplicity": 1
         }
       ]
     },
@@ -92,14 +65,7 @@
       "eigensystem": [
         {
           "eigenvalue": "1",
-          "multiplicity": 1,
-          "eigenvectors": [
-            [
-              "1/q",
-              "1",
-              "0"
-            ]
-          ]
+          "multiplicity": 1
         }
       ]
     },
@@ -128,13 +94,7 @@
       "eigensystem": [
         {
           "eigenvalue": "1",
-          "multiplicity": 1,
-          "eigenvectors": [
-            [
-              "1",
-              "0"
-            ]
-          ]
+          "multiplicity": 1
         }
       ]
     }

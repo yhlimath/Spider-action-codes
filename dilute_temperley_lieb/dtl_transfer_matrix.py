@@ -32,9 +32,9 @@ def construct_dtl_transfer_matrix(L, j):
         # We start with state_k having weight 1
         current_superposition = {start_state: 1}
 
-        # 1. Apply even 1-based operators -> odd Python indices: 1, 3, 5, ...
-        odd_python_indices = list(range(1, L - 1, 2))
-        for i in odd_python_indices:
+        # 1. Apply odd 1-based operators -> even Python indices: 0, 2, 4, ...
+        even_python_indices = list(range(0, L - 1, 2))
+        for i in even_python_indices:
             next_superposition = {}
             for state, coeff in current_superposition.items():
                 res = apply_E_i(state, i, q)
@@ -45,9 +45,9 @@ def construct_dtl_transfer_matrix(L, j):
                         next_superposition[new_state] = coeff * weight
             current_superposition = next_superposition
 
-        # 2. Apply odd 1-based operators -> even Python indices: 0, 2, 4, ...
-        even_python_indices = list(range(0, L - 1, 2))
-        for i in even_python_indices:
+        # 2. Apply even 1-based operators -> odd Python indices: 1, 3, 5, ...
+        odd_python_indices = list(range(1, L - 1, 2))
+        for i in odd_python_indices:
             next_superposition = {}
             for state, coeff in current_superposition.items():
                 res = apply_E_i(state, i, q)
