@@ -1,0 +1,65 @@
+{
+  "L": 4,
+  "n": 1.372,
+  "dtl_modules": {
+    "L=4, j=0, p=4": {
+      "dimension": 1,
+      "eigenvalues": []
+    },
+    "L=4, j=0, p=2": {
+      "dimension": 6,
+      "eigenvalues": [
+        2.7439999999999998
+      ]
+    },
+    "L=4, j=0, p=0": {
+      "dimension": 2,
+      "eigenvalues": [
+        1.372
+      ]
+    },
+    "L=4, j=1, p=3": {
+      "dimension": 4,
+      "eigenvalues": []
+    },
+    "L=4, j=1, p=1": {
+      "dimension": 8,
+      "eigenvalues": [
+        1.372,
+        2.743999999999998
+      ]
+    },
+    "L=4, j=2, p=2": {
+      "dimension": 6,
+      "eigenvalues": [
+        1.372
+      ]
+    },
+    "L=4, j=2, p=0": {
+      "dimension": 3,
+      "eigenvalues": []
+    },
+    "L=4, j=3, p=1": {
+      "dimension": 4,
+      "eigenvalues": []
+    },
+    "L=4, j=4, p=0": {
+      "dimension": 1,
+      "eigenvalues": []
+    }
+  },
+  "sl3_modules": {
+    "L=4, x=0, y=2": {
+      "dimension": 2,
+      "eigenvalues": [
+        1.372
+      ]
+    },
+    "L=4, x=1, y=0": {
+      "dimension": 3,
+      "eigenvalues": [
+        2.743999999999999
+      ]
+    }
+  }
+}
