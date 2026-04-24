@@ -111,7 +111,7 @@ def get_active_indices(L=None, n_val=1.2345, sample_ratio=0.5, is_magnetic=False
 
 if __name__ == "__main__":
     print("--- Vacuum Sector ---")
-    estimate_T_rank(L=4, sample_ratio=0.5)
+    estimate_T_rank(L=5, sample_ratio=0.5)
 
     print("\n--- Magnetic Sector (Entire Space S=4) ---")
     estimate_T_rank(is_magnetic=True, m=4, use_all_valid=True)

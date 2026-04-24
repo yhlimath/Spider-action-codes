@@ -220,8 +220,8 @@ def evaluate_conjecture_and_export(L, n_val, is_symbolic):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-L", type=int, default=12)
-    parser.add_argument("-n", "--n_val", type=float, default=1.372)
+    parser.add_argument("-L", type=int, default=13)
+    parser.add_argument("-n", "--n_val", type=float, default=1.414213562373095, help="Numeric value for n (ignored if --symbolic is set)")
     parser.add_argument("--symbolic", action="store_true", help="Enable symbolic computation of eigensystems")
     args = parser.parse_args()
 
