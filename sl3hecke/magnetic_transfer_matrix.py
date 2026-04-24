@@ -62,7 +62,7 @@ def analyze_blocks(S_list=[6], n_val=1.2345):
                 # Check rank
                 rank = np.linalg.matrix_rank(T_block, tol=1e-10)
                 print(f"      Rank: {rank}")
-                np.save(os.path.join(out_dir, f"T_block_S{S}_x{x}_y{y}.npy"), T_block)
+
 
         print(f"  Sum of block dimensions: {total_dim_blocks} (Matches entire space: {total_dim_blocks == dim_all})")
 

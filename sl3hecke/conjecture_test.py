@@ -199,16 +199,16 @@ def evaluate_conjecture_and_export(L, n_val, is_symbolic):
             }
 
     # 2. Gather dTL data
-    print("  Computing dTL modules...")
-    for j in range(L + 1):
-        try:
-            print(f"    Evaluating j={j}...")
-            dtl_res = analyze_dtl(L, j, n_val, is_symbolic)
-            for p, data in dtl_res.items():
-                key = f"L={L}, j={j}, p={p}"
-                output_data["dtl_modules"][key] = data
-        except Exception as e:
-            pass
+    #print("  Computing dTL modules...")
+    #for j in range(L + 1):
+        #try:
+            #print(f"    Evaluating j={j}...")
+            #dtl_res = analyze_dtl(L, j, n_val, is_symbolic)
+            #for p, data in dtl_res.items():
+                #key = f"L={L}, j={j}, p={p}"
+                #output_data["dtl_modules"][key] = data
+        #except Exception as e:
+            #pass
 
     # Export
     os.makedirs("experiment_outputs", exist_ok=True)
@@ -220,7 +220,7 @@ def evaluate_conjecture_and_export(L, n_val, is_symbolic):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-L", type=int, default=8)
+    parser.add_argument("-L", type=int, default=12)
     parser.add_argument("-n", "--n_val", type=float, default=1.372)
     parser.add_argument("--symbolic", action="store_true", help="Enable symbolic computation of eigensystems")
     args = parser.parse_args()
