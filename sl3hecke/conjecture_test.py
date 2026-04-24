@@ -139,7 +139,6 @@ def analyze_dtl(L, j, n_val, is_symbolic):
             eigs = get_symbolic_eigensystem(sub_T)
             dtl_data[p] = {
                 "dimension": len(indices),
-                "basis": [str(states_dtl[idx]) for idx in indices],
                 "eigensystem": eigs
             }
     else:
@@ -197,7 +196,6 @@ def evaluate_conjecture_and_export(L, n_val, is_symbolic):
 
             output_data["sl3_modules"][f"L={L}, x={x}, y={y}"] = {
                 "dimension": dim,
-                "basis": [str(s) for s in basis],
                 "eigensystem": eigs
             }
 
@@ -223,7 +221,7 @@ def evaluate_conjecture_and_export(L, n_val, is_symbolic):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-L", type=int, default=3)
+    parser.add_argument("-L", type=int, default=8)
     parser.add_argument("-n", "--n_val", type=float, default=1.372)
     parser.add_argument("--symbolic", action="store_true", help="Enable symbolic computation of eigensystems")
     args = parser.parse_args()
