@@ -5,86 +5,25 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import numpy as np
 import sympy
 import json
-import argparse
 
 from dilute_temperley_lieb.dtl_transfer_matrix import construct_dtl_transfer_matrix
-from sl3hecke.magnetic_modules import generate_constrained_strings, ed
+from sl3hecke.sl3_hecke import generate_constrained_strings, ed
 from sl3hecke.sl3_hecke import Polynomial
 
-def eval_poly_to_sym(poly, n_sym):
-    if hasattr(poly, 'evaluate'):
-        return poly.evaluate(n_sym)
-    return poly
-
-def eval_poly_num(poly, n_val):
+def eval_poly(poly, n_val):
     if hasattr(poly, 'evaluate'):
         return poly.evaluate(n_val)
     return poly
 
-def fmt_cplx(c):
-    if np.abs(c.imag) < 1e-10:
-        return float(c.real)
-    return {"re": float(c.real), "im": float(c.imag)}
-
-def get_numeric_eigensystem(matrix):
-    w, v = np.linalg.eig(matrix)
-    grouped = []
-    visited = [False] * len(w)
-    for i in range(len(w)):
-        if visited[i]: continue
-        if np.abs(w[i]) < 1e-8:
-            visited[i] = True
-            continue
-
-        group_vecs = [v[:, i].tolist()]
-        visited[i] = True
-
-        for j in range(i+1, len(w)):
-            if not visited[j] and np.abs(w[i] - w[j]) < 1e-5:
-                group_vecs.append(v[:, j].tolist())
-                visited[j] = True
-
-        grouped.append({
-            "eigenvalue": fmt_cplx(w[i]),
-            "multiplicity": len(group_vecs),
-            "eigenvectors": [[fmt_cplx(c) for c in vec] for vec in group_vecs]
-        })
-    # Sort by real part of eigenvalue
-    grouped.sort(key=lambda x: x["eigenvalue"] if isinstance(x["eigenvalue"], float) else x["eigenvalue"]["re"])
-    return grouped
-
-def get_symbolic_eigensystem(matrix):
-    M = sympy.Matrix(matrix)
-    evs = M.eigenvects()
-    grouped = []
-    for val, mult, vecs in evs:
-        if val == 0: continue
-
-        vecs_list = []
-        for vec in vecs:
-            vecs_list.append([str(sympy.simplify(c)) for c in vec])
-
-        grouped.append({
-            "eigenvalue": str(sympy.simplify(val)),
-            "multiplicity": mult,
-            "eigenvectors": vecs_list
-        })
-    # Cannot easily sort symbolic expressions safely, leave as is
-    return grouped
-
-def build_sl3_magnetic_matrix(L, x, y, n_val=None, n_sym=None):
+def compute_sl3_magnetic_eigenvalues(L, x, y, n_val):
+    """Compute eigenvalues of T on V^{L, (x,y)}."""
     basis = generate_constrained_strings(L, x, y)
     dim = len(basis)
     if dim == 0:
-        return None, []
+        return [], 0
 
     string_to_idx = {tuple(s): i for i, s in enumerate(basis)}
-    is_symbolic = n_sym is not None
-
-    if is_symbolic:
-        matrix = [[0 for _ in range(dim)] for _ in range(dim)]
-    else:
-        matrix = np.zeros((dim, dim), dtype=complex)
+    matrix = np.zeros((dim, dim), dtype=complex)
 
     num_generators = L - 1
 
@@ -116,19 +55,28 @@ def build_sl3_magnetic_matrix(L, x, y, n_val=None, n_sym=None):
             t = tuple(end_s)
             if t in string_to_idx:
                 r_idx = string_to_idx[t]
-                if is_symbolic:
-                    val = eval_poly_to_sym(coeff, n_sym)
-                    matrix[r_idx][k] = sympy.expand(matrix[r_idx][k] + val)
-                else:
-                    val = complex(eval_poly_num(coeff, n_val))
-                    matrix[r_idx, k] += val
+                val = eval_poly(coeff, n_val)
+                matrix[r_idx, k] += val
 
-    return matrix, basis
+    eigvals = np.linalg.eigvals(matrix)
+    return np.sort(np.real(eigvals)), dim
 
-def analyze_dtl(L, j, n_val, is_symbolic):
+def analyze_dtl(L, j, n_val):
     T_dtl, states_dtl = construct_dtl_transfer_matrix(L, j)
     if len(states_dtl) == 0:
         return {}
+
+    q_val = (n_val + np.sqrt(n_val**2 - 4 + 0j)) / 2
+
+    dim_dtl = len(states_dtl)
+    T_dtl_num = np.zeros((dim_dtl, dim_dtl), dtype=complex)
+    q_sym = sympy.Symbol('q')
+    for r in range(dim_dtl):
+        for c in range(dim_dtl):
+            val = T_dtl[r][c]
+            if val != 0:
+                val_c = complex(val.subs(q_sym, q_val))
+                T_dtl_num[r, c] = val_c
 
     p_groups = {}
     for i, s in enumerate(states_dtl):
@@ -163,24 +111,20 @@ def analyze_dtl(L, j, n_val, is_symbolic):
             eigs = get_numeric_eigensystem(sub_T)
             dtl_data[p] = {
                 "dimension": len(indices),
+                "basis": [str(states_dtl[idx]) for idx in indices],
                 "eigensystem": eigs
             }
     return dtl_data
 
-def evaluate_conjecture_and_export(L, n_val, is_symbolic):
-    mode_str = "symbolic" if is_symbolic else "numeric"
-    print(f"Generating data for L={L}, mode={mode_str}...")
+def evaluate_conjecture_and_export(L, n_val=1.372):
+    print(f"Generating data for L={L}, n={n_val}...")
 
     output_data = {
         "L": L,
-        "mode": mode_str,
-        "n": "q + 1/q" if is_symbolic else n_val,
+        "n": n_val,
         "dtl_modules": {},
         "sl3_modules": {}
     }
-
-    q_sym = sympy.Symbol('q')
-    n_sym = q_sym + 1/q_sym if is_symbolic else None
 
     # 1. Gather sl3 data
     print("  Computing sl3 modules...")
@@ -201,6 +145,7 @@ def evaluate_conjecture_and_export(L, n_val, is_symbolic):
 
             output_data["sl3_modules"][f"L={L}, x={x}, y={y}"] = {
                 "dimension": dim,
+                "basis": [str(s) for s in basis],
                 "eigensystem": eigs
             }
 
@@ -208,8 +153,7 @@ def evaluate_conjecture_and_export(L, n_val, is_symbolic):
     print("  Computing dTL modules...")
     for j in range(L + 1):
         try:
-            print(f"    Evaluating j={j}...")
-            dtl_res = analyze_dtl(L, j, n_val, is_symbolic)
+            dtl_res = analyze_dtl(L, j, n_val)
             for p, data in dtl_res.items():
                 key = f"L={L}, j={j}, p={p}"
                 output_data["dtl_modules"][key] = data
@@ -218,8 +162,7 @@ def evaluate_conjecture_and_export(L, n_val, is_symbolic):
 
     # Export
     os.makedirs("experiment_outputs", exist_ok=True)
-    suffix = "sym" if is_symbolic else "num"
-    out_path = f"experiment_outputs/eigenvalue_mapping_L{L}_{suffix}.json"
+    out_path = f"experiment_outputs/eigenvalue_mapping_L{L}.json"
     with open(out_path, "w") as f:
         json.dump(output_data, f, indent=2)
     print(f"  Data exported to {out_path}")
@@ -227,7 +170,7 @@ def evaluate_conjecture_and_export(L, n_val, is_symbolic):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-L", type=int, default=8)
-    parser.add_argument("-n", "--n_val", type=float, default=1)
+    parser.add_argument("-n", "--n_val", type=float, default=1.372)
     parser.add_argument("--symbolic", action="store_true", help="Enable symbolic computation of eigensystems")
     args = parser.parse_args()
 
