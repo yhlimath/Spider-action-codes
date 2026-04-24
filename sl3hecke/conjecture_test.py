@@ -15,8 +15,53 @@ def eval_poly(poly, n_val):
         return poly.evaluate(n_val)
     return poly
 
-def compute_sl3_magnetic_eigenvalues(L, x, y, n_val):
-    """Compute eigenvalues of T on V^{L, (x,y)}."""
+def fmt_cplx(c):
+    if np.abs(c.imag) < 1e-10:
+        return float(c.real)
+    return {"re": float(c.real), "im": float(c.imag)}
+
+def get_numeric_eigensystem(matrix):
+    w = np.linalg.eigvals(matrix)
+    grouped = []
+    visited = [False] * len(w)
+    for i in range(len(w)):
+        if visited[i]: continue
+        if np.abs(w[i]) < 1e-8:
+            visited[i] = True
+            continue
+
+        mult = 1
+        visited[i] = True
+
+        for j in range(i+1, len(w)):
+            if not visited[j] and np.abs(w[i] - w[j]) < 1e-5:
+                mult += 1
+                visited[j] = True
+
+        grouped.append({
+            "eigenvalue": fmt_cplx(w[i]),
+            "multiplicity": mult
+        })
+    # Sort by real part of eigenvalue
+    grouped.sort(key=lambda x: x["eigenvalue"] if isinstance(x["eigenvalue"], float) else x["eigenvalue"]["re"])
+    return grouped
+
+def get_symbolic_eigensystem(matrix):
+    M = sympy.Matrix(matrix)
+    # eigenvals returns dict of {eigenvalue: multiplicity}
+    evs = M.eigenvals()
+    grouped = []
+    for val, mult in evs.items():
+        if val == 0: continue
+
+        grouped.append({
+            "eigenvalue": str(sympy.simplify(val)),
+            "multiplicity": mult
+        })
+    # Cannot easily sort symbolic expressions safely, leave as is
+    return grouped
+
+def build_sl3_magnetic_matrix(L, x, y, n_val=None, n_sym=None):
     basis = generate_constrained_strings(L, x, y)
     dim = len(basis)
     if dim == 0:
@@ -169,6 +214,8 @@ def evaluate_conjecture_and_export(L, n_val=1.372):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("-L", type=int, default=3)
+    parser.add_argument("-n", "--n_val", type=float, default=1.372)
     parser.add_argument("-L", type=int, default=8)
     parser.add_argument("-n", "--n_val", type=float, default=1.372)
     parser.add_argument("--symbolic", action="store_true", help="Enable symbolic computation of eigensystems")
