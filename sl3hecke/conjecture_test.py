@@ -157,7 +157,6 @@ def analyze_dtl(L, j, n_val, is_symbolic):
             eigs = get_numeric_eigensystem(sub_T)
             dtl_data[p] = {
                 "dimension": len(indices),
-                "basis": [str(states_dtl[idx]) for idx in indices],
                 "eigensystem": eigs
             }
     return dtl_data
