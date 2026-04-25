@@ -163,10 +163,10 @@ def compute_all_arnoldi(L, n_val, top_k, operator='T'):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute top explicit non-zero eigenvalues matrix-free via Arnoldi for valid sl3 magnetic modules V^{L, (x,y)}")
-    parser.add_argument("-L", type=int, default=21, help="System size L")
-    parser.add_argument("-n", "--n_val", type=float, default=1.414213562373095, help="Numeric loop weight n (default 1.372)")
-    parser.add_argument("-k", "--top_k", type=int, default=15, help="Number of leading eigenvalues to extract per sector (default 10)")
-    parser.add_argument("-k", "--top_k", type=int, default=1, help="Number of leading eigenvalues to extract per sector (default 10)")
+    parser.add_argument("-L", type=int, required=True, help="System size L")
+    parser.add_argument("-n", "--n_val", type=float, default=1.414213562373095, help="Numeric loop weight n (default 1.414213562373095)")
+    parser.add_argument("-k", "--top_k", type=int, default=10, help="Number of leading eigenvalues to extract per sector (default 10)")
+    parser.add_argument("-O", "--operator", type=str, default="H", choices=["T", "H"], help="Operator to diagonalize: 'T' (Transfer Matrix) or 'H' (Hamiltonian)")
 
     args = parser.parse_args()
 
