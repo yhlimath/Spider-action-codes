@@ -1,0 +1,33 @@
+{
+  "L": 6,
+  "n": 1.414213562373095,
+  "modules": {
+    "x=0, y=0": {
+      "dimension": 5,
+      "eigenvalues": [
+        5.65685424949238
+      ]
+    },
+    "x=0, y=3": {
+      "dimension": 5,
+      "eigenvalues": [
+        1.414213562373095
+      ]
+    },
+    "x=1, y=1": {
+      "dimension": 16,
+      "eigenvalues": [
+        1.828427124746189,
+        3.828427124746189
+      ]
+    },
+    "x=2, y=2": {
+      "dimension": 9,
+      "eigenvalues": []
+    },
+    "x=3, y=0": {
+      "dimension": 10,
+      "eigenvalues": []
+    }
+  }
+}
