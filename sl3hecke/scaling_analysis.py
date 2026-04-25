@@ -131,11 +131,26 @@ def analyze_scaling(L_values, n_value, operator='H', output_filename="eigenvalue
         # Model: y = A + C / L^2
         # Plot y vs 1/L^2
 
+        y_corrected = [f - B_fit/l for f, l in zip(f_L_values, L_array)]
         inv_L_squared = [1.0/(l**2) for l in L_array]
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(inv_L_squared, y_corrected, 'o', label=f'Data corrected')
 
         # Line: A + C * x
         x_fit = np.linspace(min(inv_L_squared)*0.9, max(inv_L_squared)*1.1, 100)
         y_fit = f_inf_fit + C_fit * x_fit
+
+        plt.plot(x_fit, y_fit, '-', label=f'Fit: Slope (C)={C_fit:.4f}')
+
+        plt.xlabel(r'$1/L^2$')
+        plt.ylabel(r'$f_L - 2 f_{sur}/L$')
+        plt.title(f'Corrected Scaling (n={n_value}, Operator={operator})')
+        plt.legend()
+        plt.grid(True)
+        plot_filename = f'scaling_fit_corrected_{operator}.png'
+        plt.savefig(plot_filename)
+        print(f"Saved corrected scaling plot to '{plot_filename}'")
 
         # Also keep original plot? User said "plot also".
         # Let's regenerate the standard one too if needed, but the prompt focused on the new one.
@@ -198,11 +213,11 @@ def analyze_scaling(L_values, n_value, operator='H', output_filename="eigenvalue
         print("Not enough data points for fit (need at least 3).")
 
 if __name__ == "__main__":
-    L_range = [2, 3, 4, 5, 6, 7]
-    n_val = 1.414213562373095
-#
+    L_range = [2, 3, 4, 5]
+    n_val = 1.0
+
     # Analyze H
-    #analyze_scaling(L_range, n_val, operator='H')
+    analyze_scaling(L_range, n_val, operator='H')
 
     # Analyze T
     print("\n" + "#" * 80 + "\n")
