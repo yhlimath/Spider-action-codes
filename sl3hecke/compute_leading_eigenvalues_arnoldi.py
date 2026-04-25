@@ -155,6 +155,7 @@ if __name__ == "__main__":
     parser.add_argument("-L", type=int, default=21, help="System size L")
     parser.add_argument("-n", "--n_val", type=float, default=1.414213562373095, help="Numeric loop weight n (default 1.372)")
     parser.add_argument("-k", "--top_k", type=int, default=15, help="Number of leading eigenvalues to extract per sector (default 10)")
+    parser.add_argument("-k", "--top_k", type=int, default=1, help="Number of leading eigenvalues to extract per sector (default 10)")
 
     args = parser.parse_args()
 
