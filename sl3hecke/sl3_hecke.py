@@ -371,21 +371,28 @@ class Sl3HeckeArnoldi:
                 w[target_idx] += coeff_v * val
         return w
 
-    def arnoldi_iteration(self, k, start_vector_idx=None, operator='H'):
+    def arnoldi_iteration(self, k, start_vector=None, operator='H'):
         """
         Run Arnoldi iteration manually.
         operator: 'H' for Hamiltonian, 'T' for Transfer Matrix
         """
+        # Ensure k does not exceed matrix dimensions
+        k = min(k, self.dim)
+
         print(f"Running custom Arnoldi iteration (k={k}, operator={operator})...")
 
         Q = np.zeros((self.dim, k + 1), dtype=complex)
         h = np.zeros((k + 1, k), dtype=complex)
 
-        if start_vector_idx is None:
-            start_vector_idx = random.randint(0, self.dim - 1)
-
-        print(f"Starting with basis vector index {start_vector_idx}")
-        Q[start_vector_idx, 0] = 1.0
+        if start_vector is None:
+            print("Starting with dense random complex vector to ensure full subspace spanning")
+            v_start = np.random.rand(self.dim) + 1j * np.random.rand(self.dim)
+            v_start = v_start / np.linalg.norm(v_start)
+            Q[:, 0] = v_start
+        else:
+            print("Starting with provided vector")
+            v_start = start_vector / np.linalg.norm(start_vector)
+            Q[:, 0] = v_start
 
         for j in range(k):
             v_j = Q[:, j]
