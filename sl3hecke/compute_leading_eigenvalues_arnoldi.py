@@ -48,6 +48,12 @@ class MagneticArnoldiSolver:
                 w[target_idx] += coeff_v * val
         return w
 
+    def apply_H(self, v):
+        w = np.zeros_like(v)
+        for k in range(1, self.num_generators + 1):
+            w += self.apply_single_generator(v, k)
+        return w
+
     def apply_T(self, v):
         w = v.copy()
         odd_indices = range(1, self.num_generators + 1, 2)
@@ -59,7 +65,7 @@ class MagneticArnoldiSolver:
             w = self.apply_single_generator(w, k)
         return w
 
-    def arnoldi_iteration(self, k):
+    def arnoldi_iteration(self, k, operator='T'):
         k = min(k, self.dim)
         Q = np.zeros((self.dim, k + 1), dtype=complex)
         h = np.zeros((k + 1, k), dtype=complex)
@@ -70,7 +76,11 @@ class MagneticArnoldiSolver:
 
         for j in range(k):
             v_j = Q[:, j]
-            w = self.apply_T(v_j)
+
+            if operator == 'H':
+                w = self.apply_H(v_j)
+            else:
+                w = self.apply_T(v_j)
 
             for i in range(j + 1):
                 h[i, j] = np.vdot(Q[:, i], w)
@@ -85,20 +95,21 @@ class MagneticArnoldiSolver:
         return h[:k, :k]
 
 
-def compute_all_arnoldi(L, n_val, top_k):
-    print(f"Computing top {top_k} non-zero eigenvalues via Arnoldi for sl3 magnetic modules of length L={L}, n={n_val}")
+def compute_all_arnoldi(L, n_val, top_k, operator='T'):
+    print(f"Computing top {top_k} non-zero eigenvalues of operator {operator} via Arnoldi for sl3 magnetic modules of length L={L}, n={n_val}")
 
     results = {
         "L": L,
         "n": n_val,
+        "operator": operator,
         "modules": {}
     }
 
     total_valid_modules = 0
     total_dimension = 0
 
-    for x in range(1):#YH LI: changes here to stay in vacuum sector for now, can expand to other sectors later
-        for y in range(1):
+    for x in range(L + 1):
+        for y in range(L + 1):
             if 2*x + y > L: continue
             if (L + 2*x + y) % 3 != 0: continue
 
@@ -121,7 +132,7 @@ def compute_all_arnoldi(L, n_val, top_k):
             if dim <= 50:
                 k_arnoldi = dim
 
-            h_mat = solver.arnoldi_iteration(k_arnoldi)
+            h_mat = solver.arnoldi_iteration(k_arnoldi, operator=operator)
             eigs = np.linalg.eigvals(h_mat)
 
             eigs_abs = np.abs(eigs)
@@ -159,10 +170,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    data = compute_all_arnoldi(args.L, args.n_val, args.top_k)
+    data = compute_all_arnoldi(args.L, args.n_val, args.top_k, args.operator)
 
     os.makedirs("experiment_outputs", exist_ok=True)
-    out_file = f"experiment_outputs/all_eigenvalues_L{args.L}.json"
+    out_file = f"experiment_outputs/all_eigenvalues_{args.operator}_L{args.L}.json"
     with open(out_file, "w") as f:
         json.dump(data, f, indent=2)
     print(f"Exported data to {out_file}")
