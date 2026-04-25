@@ -97,8 +97,8 @@ def compute_all_arnoldi(L, n_val, top_k):
     total_valid_modules = 0
     total_dimension = 0
 
-    for x in range(L + 1):
-        for y in range(L + 1):
+    for x in range(1):#YH LI: changes here to stay in vacuum sector for now, can expand to other sectors later
+        for y in range(1):
             if 2*x + y > L: continue
             if (L + 2*x + y) % 3 != 0: continue
 
@@ -152,9 +152,9 @@ def compute_all_arnoldi(L, n_val, top_k):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute top explicit non-zero eigenvalues matrix-free via Arnoldi for valid sl3 magnetic modules V^{L, (x,y)}")
-    parser.add_argument("-L", type=int, required=True, help="System size L")
-    parser.add_argument("-n", "--n_val", type=float, default=1.372, help="Numeric loop weight n (default 1.372)")
-    parser.add_argument("-k", "--top_k", type=int, default=10, help="Number of leading eigenvalues to extract per sector (default 10)")
+    parser.add_argument("-L", type=int, default=21, help="System size L")
+    parser.add_argument("-n", "--n_val", type=float, default=1.414213562373095, help="Numeric loop weight n (default 1.372)")
+    parser.add_argument("-k", "--top_k", type=int, default=15, help="Number of leading eigenvalues to extract per sector (default 10)")
 
     args = parser.parse_args()
 
