@@ -7,8 +7,11 @@ import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sl3hecke.conjecture_test import build_sl3_magnetic_matrix
 
-def compute_all(L, n_val):
-    print(f"Computing all non-zero eigenvalues for sl3 magnetic modules of length L={L}, n={n_val}")
+def compute_all(L, n_val, top_k=None):
+    if top_k is not None:
+        print(f"Computing top {top_k} non-zero eigenvalues for sl3 magnetic modules of length L={L}, n={n_val}")
+    else:
+        print(f"Computing all non-zero eigenvalues for sl3 magnetic modules of length L={L}, n={n_val}")
 
     results = {
         "L": L,
@@ -44,11 +47,14 @@ def compute_all(L, n_val):
 
             if len(eigs) > 0:
                 if np.all(np.abs(np.imag(eigs)) < 1e-8):
-                    eigs_sorted = np.sort(np.real(eigs))
+                    eigs_sorted = np.sort(np.real(eigs))[::-1] # Descending order
                 else:
-                    eigs_sorted = eigs[np.argsort(np.abs(eigs))]
+                    eigs_sorted = eigs[np.argsort(np.abs(eigs))[::-1]] # Descending order by modulus
             else:
                 eigs_sorted = np.array([])
+
+            if top_k is not None and top_k > 0:
+                eigs_sorted = eigs_sorted[:top_k]
 
             print(f"  Non-zero eigenvalues found: {len(eigs_sorted)}")
 
@@ -63,13 +69,14 @@ def compute_all(L, n_val):
     return results
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compute all explicit non-zero eigenvalues for valid sl3 magnetic modules V^{L, (x,y)}")
+    parser = argparse.ArgumentParser(description="Compute all (or top k) explicit non-zero eigenvalues for valid sl3 magnetic modules V^{L, (x,y)}")
     parser.add_argument("-L", type=int, required=True, help="System size L")
-    parser.add_argument("-n", "--n_val", type=float, default=1.414213562373095, help="Numeric loop weight n (default 1.414213562373095)")
+    parser.add_argument("-n", "--n_val", type=float, default=1.372, help="Numeric loop weight n (default 1.372)")
+    parser.add_argument("-k", "--top_k", type=int, default=None, help="Optional: Number of leading eigenvalues to extract per sector")
 
     args = parser.parse_args()
 
-    data = compute_all(args.L, args.n_val)
+    data = compute_all(args.L, args.n_val, args.top_k)
 
     os.makedirs("experiment_outputs", exist_ok=True)
     out_file = f"experiment_outputs/all_eigenvalues_L{args.L}.json"
