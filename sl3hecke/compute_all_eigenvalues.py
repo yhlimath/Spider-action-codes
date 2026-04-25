@@ -65,7 +65,7 @@ def compute_all(L, n_val):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute all explicit non-zero eigenvalues for valid sl3 magnetic modules V^{L, (x,y)}")
     parser.add_argument("-L", type=int, required=True, help="System size L")
-    parser.add_argument("-n", "--n_val", type=float, default=1.372, help="Numeric loop weight n (default 1.372)")
+    parser.add_argument("-n", "--n_val", type=float, default=1.414213562373095, help="Numeric loop weight n (default 1.414213562373095)")
 
     args = parser.parse_args()
 
