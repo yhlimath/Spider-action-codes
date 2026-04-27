@@ -1,8 +1,13 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 import numpy as np
 import copy
 import os
-from sl3_hecke import Polynomial, e, ed, generate_all_valid_strings, generate_constrained_strings
+from sl3hecke.sl3_hecke import Polynomial, e, generate_all_valid_strings
+from sl3hecke.magnetic_modules import ed, generate_constrained_strings
 
 class SymbolicHeckeBuilder:
     def __init__(self, L=None, is_magnetic=False, m=None, x=None, y=None, use_all_valid=False):
@@ -325,4 +330,4 @@ if __name__ == "__main__":
 
     # Generate magnetic module matrices (S=3, 4)
     # S=3 dim=3, S=4 dim=9
-    generate_magnetic_symbolic_matrices(S_list=[3, 4])
+    generate_magnetic_symbolic_matrices(S_list=[2])

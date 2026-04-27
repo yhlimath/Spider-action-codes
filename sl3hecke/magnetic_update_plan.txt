@@ -1,9 +1,0 @@
-
-import numpy as np
-import random
-from scipy.sparse import dok_matrix
-from scipy.sparse.linalg import eigs
-
-# Keep the previous Polynomial, FormalSum, e implementations from sl3_hecke.py
-
-# ... (I will append the magnetic module functions to sl3_hecke.py)

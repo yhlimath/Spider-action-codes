@@ -5,6 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import numpy as np
 import sympy
 import json
+import argparse
 
 from dilute_temperley_lieb.dtl_transfer_matrix import construct_dtl_transfer_matrix
 from sl3hecke.magnetic_modules import generate_constrained_strings, ed
@@ -141,9 +142,8 @@ def evaluate_conjecture_and_export(L, n_val=1.372):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-L", type=int, default=6)
+    parser.add_argument("-L", type=int, default=4)
     parser.add_argument("-n", "--n_val", type=float, default=1.372)
-    parser.add_argument("--symbolic", action="store_true", help="Enable symbolic computation of eigensystems")
     args = parser.parse_args()
 
-    evaluate_conjecture_and_export(args.L, args.n_val, args.symbolic)
+    evaluate_conjecture_and_export(args.L, args.n_val)
