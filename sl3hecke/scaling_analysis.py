@@ -217,8 +217,8 @@ if __name__ == "__main__":
     n_val = 1.414213562373095  # sqrt(2) 
 
     # Analyze H
-    #analyze_scaling(L_range, n_val, operator='H')
+    analyze_scaling(L_range, n_val, operator='H')
 
     # Analyze T
     print("\n" + "#" * 80 + "\n")
-    analyze_scaling(L_range, n_val, operator='T')
+    #analyze_scaling(L_range, n_val, operator='T')
