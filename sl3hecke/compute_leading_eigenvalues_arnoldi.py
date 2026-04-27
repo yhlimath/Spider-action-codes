@@ -166,7 +166,7 @@ if __name__ == "__main__":
     parser.add_argument("-L", type=int, required=True, help="System size L")
     parser.add_argument("-n", "--n_val", type=float, default=1.414213562373095, help="Numeric loop weight n (default 1.414213562373095)")
     parser.add_argument("-k", "--top_k", type=int, default=10, help="Number of leading eigenvalues to extract per sector (default 10)")
-    parser.add_argument("-O", "--operator", type=str, default="H", choices=["T", "H"], help="Operator to diagonalize: 'T' (Transfer Matrix) or 'H' (Hamiltonian)")
+    parser.add_argument("-O", "--operator", type=str, default="T", choices=["T", "H"], help="Operator to diagonalize: 'T' (Transfer Matrix) or 'H' (Hamiltonian)")
 
     args = parser.parse_args()
 

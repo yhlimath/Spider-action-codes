@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-from sl3_hecke import Sl3HeckeArnoldi
+from sl3hecke.sl3_hecke import Sl3HeckeArnoldi
 import time
 import json
 import datetime
