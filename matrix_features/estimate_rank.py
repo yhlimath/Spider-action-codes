@@ -4,7 +4,7 @@ import time
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from sl3_hecke import Sl3HeckeArnoldi
+from sl3hecke.sl3_hecke import Sl3HeckeArnoldi
 
 def estimate_T_rank(L=None, n_val=1.2345, sample_ratio=0.5, is_magnetic=False, m=None, x=None, y=None, use_all_valid=False):
     if is_magnetic:

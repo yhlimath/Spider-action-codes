@@ -3,8 +3,8 @@ import sys
 import json
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from sl3_hecke import Sl3HeckeArnoldi
-from estimate_rank import estimate_T_rank
+from sl3hecke.sl3_hecke import Sl3HeckeArnoldi
+from Web_transfer_matrix.matrix_features.estimate_rank import estimate_T_rank
 
 def analyze_magnetic_ranks(S_list=[3, 4, 5, 6, 7], n_val=1.2345):
     print("Analyzing Transfer Matrix Ranks for Magnetic Modules")

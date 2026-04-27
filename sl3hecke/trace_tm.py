@@ -6,7 +6,7 @@ import sympy
 import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from sl3hecke.conjecture_test import build_sl3_magnetic_matrix
+from matrix_features.conjecture_test import build_sl3_magnetic_matrix
 from sl3hecke.sl3_hecke import Sl3HeckeArnoldi
 
 def compute_trace(L, M, x, y, n_val=None, symbolic=False):
