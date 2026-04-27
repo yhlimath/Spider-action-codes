@@ -5,7 +5,7 @@ import numpy as np
 import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from matrix_features.conjecture_test import build_sl3_magnetic_matrix
+from sl3hecke.conjecture_test import build_sl3_magnetic_matrix
 
 def compute_all(L, n_val, top_k=None):
     if top_k is not None:
