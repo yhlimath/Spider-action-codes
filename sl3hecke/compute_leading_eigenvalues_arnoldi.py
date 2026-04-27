@@ -108,8 +108,8 @@ def compute_all_arnoldi(L, n_val, top_k, operator='T'):
     total_valid_modules = 0
     total_dimension = 0
 
-    for x in range(1): #Change: only analyze (x,y)=(0,0) sector for now
-        for y in range(1):
+    for x in range(L+1): #Change: only analyze (x,y)=(0,0) sector for now
+        for y in range(L+1):
             if 2*x + y > L: continue
             if (L + 2*x + y) % 3 != 0: continue
 
