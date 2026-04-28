@@ -73,9 +73,12 @@ class Polynomial:
         return len(self.coeffs) == 0
 
 
-def generate_all_valid_strings(n):
+def generate_all_valid_strings(L):
+    if L % 3 != 0:
+        return []
+    n = L // 3
     def backtrack(sequence, count_1, count_0, count_neg1, results):
-        if len(sequence) == 3 * n:
+        if len(sequence) == L:
             results.append(sequence[:])
             return
         if count_1 < n:
@@ -264,6 +267,7 @@ class Sl3HeckeArnoldi:
     def __init__(self, L, n_value):
         self.L = L
         self.n_value = n_value
+        self.num_generators = L - 1
         self.basis_strings = generate_all_valid_strings(L)
         self.dim = len(self.basis_strings)
         self.string_to_idx = {tuple(s): i for i, s in enumerate(self.basis_strings)}
@@ -298,10 +302,9 @@ class Sl3HeckeArnoldi:
         if s_tuple in self.H_cache:
             return self.H_cache[s_tuple]
 
-        num_generators = 3 * self.L - 1
         h_s_results = []
         # H = sum e_k
-        for k in range(1, num_generators + 1):
+        for k in range(1, self.num_generators + 1):
             e_k_results = self._get_e_k_action(s, k)
             h_s_results.extend(e_k_results)
 
@@ -339,12 +342,11 @@ class Sl3HeckeArnoldi:
         Application order: Apply odd indices first, then even indices.
         """
         w = v.copy()
-        num_generators = 3 * self.L - 1
 
         # Odd indices: 1, 3, 5, ...
-        odd_indices = range(1, num_generators + 1, 2)
+        odd_indices = range(1, self.num_generators + 1, 2)
         # Even indices: 2, 4, 6, ...
-        even_indices = range(2, num_generators + 1, 2)
+        even_indices = range(2, self.num_generators + 1, 2)
 
         # Apply all odd e_k
         for k in odd_indices:

@@ -19,11 +19,11 @@ import matplotlib.pyplot as plt
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Sweep over n to estimate central charge for H or T operators.")
-    parser.add_argument("-O", "--operator", choices=['H', 'T'], default='T', help="Operator to analyze (H or T)")
-    parser.add_argument("-L", "--sizes", type=int, nargs="+", default=[2, 3, 4], help="List of system sizes L")
-    parser.add_argument("--n_start", type=float, default=0.5, help="Start value of n")
-    parser.add_argument("--n_end", type=float, default=1.5, help="End value of n (exclusive)")
-    parser.add_argument("--n_step", type=float, default=0.01, help="Step size for n")
+    parser.add_argument("-O", "--operator", choices=['H', 'T'], default='H', help="Operator to analyze (H or T)")
+    parser.add_argument("-L", "--sizes", type=int, nargs="+", default=[6,9,12], help="List of system sizes L")
+    parser.add_argument("--n_start", type=float, default=0.2, help="Start value of n")
+    parser.add_argument("--n_end", type=float, default=0.5, help="End value of n (exclusive)")
+    parser.add_argument("--n_step", type=float, default=0.02, help="Step size for n")
     parser.add_argument("-o", "--out_dir", type=str, default="experiment_outputs", help="Output directory")
 
     return parser.parse_args()
@@ -53,9 +53,9 @@ def compute_eigenvalues(n_range, L_values, operator):
                 Lambda = eigenvalues[0]
 
                 if operator == 'T':
-                    f_L = -np.log(abs(Lambda)) / (3 * L)
+                    f_L = -np.log(abs(Lambda)) / L
                 else:
-                    f_L = -np.real(Lambda) / (3 * L)
+                    f_L = -np.real(Lambda) / L
 
                 Lambda_list.append({
                     "L": L,
@@ -80,7 +80,7 @@ def compute_eigenvalues(n_range, L_values, operator):
 def scaling_model(L, A, B, C):
     return A + B/L + C/(L**2)
 
-def fit_scaling(valid_L, f_L_values, n_val):
+def fit_scaling(valid_L, f_L_values, n_val, operator):
     if len(valid_L) < 3:
         return None
 
@@ -88,17 +88,29 @@ def fit_scaling(valid_L, f_L_values, n_val):
         popt, pcov = curve_fit(scaling_model, valid_L, f_L_values)
         A, B, C = popt
 
-
-        v_F = ( (2 * np.pi) / 3.0 ) * ( np.sqrt(1-(n_val / 2)**2) / np.arccos(n_val / 2) )
         f_inf = A
         f_sur = B / 2.0
-        c = - (24 * C) / (np.pi * v_F)
+
+        # Calculate numerical central charge assuming v_F = 1
+        if operator == 'T':
+            c_num = - (24 * C) / np.pi
+        else:
+            c_num = - (6 * C) / np.pi
+
+        # Theoretical exact central charge
+        g = 1 - np.arccos(n_val / 2.0) / np.pi
+        c_exact = 2 - 24 * ((1 - g)**2) / g
+
+        # Extract Fermi velocity v_F
+        v_F_extracted = c_num / c_exact if c_exact != 0 else float('inf')
 
         return {
             "popt": list(popt),
             "f_inf": float(f_inf),
             "f_sur": float(f_sur),
-            "c": float(c)
+            "c_num": float(c_num),
+            "c_exact": float(c_exact),
+            "v_F_extracted": float(v_F_extracted)
         }
     except Exception as e:
         print(f"Fit failed: {e}")
@@ -111,7 +123,9 @@ def analyze_and_export(data_by_n, operator, out_dir):
     prefix = os.path.join(out_dir, f"central_charge_sweep_{operator}_{timestamp}")
 
     n_plot = []
-    c_plot = []
+    c_num_plot = []
+    c_exact_plot = []
+    vF_plot = []
 
     results = {
         "operator": operator,
@@ -120,7 +134,7 @@ def analyze_and_export(data_by_n, operator, out_dir):
     }
 
     for n_val, data in data_by_n.items():
-        fit_res = fit_scaling(data["valid_L"], data["f_L_values"], n_val)
+        fit_res = fit_scaling(data["valid_L"], data["f_L_values"], n_val, operator)
 
         results["data"][str(n_val)] = {
             "L_values": data["valid_L"],
@@ -131,7 +145,9 @@ def analyze_and_export(data_by_n, operator, out_dir):
 
         if fit_res:
             n_plot.append(n_val)
-            c_plot.append(fit_res["c"])
+            c_num_plot.append(fit_res["c_num"])
+            c_exact_plot.append(fit_res["c_exact"])
+            vF_plot.append(fit_res["v_F_extracted"])
 
     # Export JSON
     json_path = f"{prefix}.json"
@@ -141,27 +157,43 @@ def analyze_and_export(data_by_n, operator, out_dir):
 
     # Generate Plot
     if n_plot:
-        plt.figure(figsize=(8, 6))
-        plt.plot(n_plot, c_plot, 'o-', color='b')
+        plt.figure(figsize=(10, 8))
+
+        plt.subplot(2, 1, 1)
+        plt.plot(n_plot, c_num_plot, 'o-', color='b', label='Numerical c_num (assuming v_F=1)')
+        plt.plot(n_plot, c_exact_plot, 'x--', color='r', label='Exact c')
         plt.xlabel('n (Loop Weight)')
         plt.ylabel(r'$c$')
-        plt.title(f'Estimated Central Charge Parameter vs n (Operator {operator})')
+        plt.title(f'Central Charge vs n (Operator {operator})')
+        plt.legend()
         plt.grid(True)
 
+        plt.subplot(2, 1, 2)
+        plt.plot(n_plot, vF_plot, 's-', color='g')
+        plt.xlabel('n (Loop Weight)')
+        plt.ylabel(r'Extracted $v_F$')
+        plt.title(f'Fermi Velocity vs n')
+        plt.grid(True)
+
+        plt.tight_layout()
         plot_path = f"{prefix}.png"
         plt.savefig(plot_path)
         print(f"Exported plot to {plot_path}")
 
-    return prefix, results, n_plot, c_plot
+    return prefix, results, n_plot, c_num_plot, vF_plot
 
-def export_mathematica(prefix, n_plot, c_plot, data_by_n, operator):
+def export_mathematica(prefix, n_plot, c_num_plot, vF_plot, data_by_n, operator):
     m_path = f"{prefix}.m"
     with open(m_path, "w") as f:
         f.write(f"(* Central Charge Extrapolation Data for Operator {operator} *)\n\n")
 
-        # Central charge vs n
-        pairs = [f"{{{n}, {v}}}" for n, v in zip(n_plot, c_plot)]
-        f.write(f"cData{operator} = {{{', '.join(pairs)}}};\n\n")
+        # c_num vs n
+        pairs_c = [f"{{{n}, {v}}}" for n, v in zip(n_plot, c_num_plot)]
+        f.write(f"cNumData{operator} = {{{', '.join(pairs_c)}}};\n\n")
+
+        # v_F vs n
+        pairs_vF = [f"{{{n}, {v}}}" for n, v in zip(n_plot, vF_plot)]
+        f.write(f"vFData{operator} = {{{', '.join(pairs_vF)}}};\n\n")
 
         # Detailed scaling data per n
         for n_val, data in data_by_n.items():
@@ -182,8 +214,8 @@ def main():
     print(f"n_range: {n_range}")
 
     data_by_n = compute_eigenvalues(n_range, args.sizes, args.operator)
-    prefix, results, n_plot, c_plot = analyze_and_export(data_by_n, args.operator, args.out_dir)
-    export_mathematica(prefix, n_plot, c_plot, data_by_n, args.operator)
+    prefix, results, n_plot, c_num_plot, vF_plot = analyze_and_export(data_by_n, args.operator, args.out_dir)
+    export_mathematica(prefix, n_plot, c_num_plot, vF_plot, data_by_n, args.operator)
 
 if __name__ == "__main__":
     main()
