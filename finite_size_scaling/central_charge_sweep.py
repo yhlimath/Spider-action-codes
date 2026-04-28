@@ -20,10 +20,17 @@ import matplotlib.pyplot as plt
 def parse_args():
     parser = argparse.ArgumentParser(description="Sweep over n to estimate central charge for H or T operators.")
     parser.add_argument("-O", "--operator", choices=['H', 'T'], default='H', help="Operator to analyze (H or T)")
+<<<<<<< Updated upstream
     parser.add_argument("-L", "--sizes", type=int, nargs="+", default=[6,9,12], help="List of system sizes L")
     parser.add_argument("--n_start", type=float, default=0.2, help="Start value of n")
     parser.add_argument("--n_end", type=float, default=0.5, help="End value of n (exclusive)")
     parser.add_argument("--n_step", type=float, default=0.02, help="Step size for n")
+=======
+    parser.add_argument("-L", "--sizes", type=int, nargs="+", default=[2, 3, 4], help="List of system sizes L")
+    parser.add_argument("--n_start", type=float, default=0.5, help="Start value of n")
+    parser.add_argument("--n_end", type=float, default=2.0, help="End value of n (exclusive)")
+    parser.add_argument("--n_step", type=float, default=0.1, help="Step size for n")
+>>>>>>> Stashed changes
     parser.add_argument("-o", "--out_dir", type=str, default="experiment_outputs", help="Output directory")
 
     return parser.parse_args()
