@@ -63,7 +63,9 @@ def extrapolate_central_charge(data_by_L):
         lambda_0_dict[L] = lambda_0
 
         # Free energy f_L = 1/(3L) * ln |lambda_0| #Change: The log formula is for T
+        
         #f_L = np.log(lambda_0) / (L)
+
         #The next formula is for H
         f_L = -np.real(lambda_0) / (L)
 
