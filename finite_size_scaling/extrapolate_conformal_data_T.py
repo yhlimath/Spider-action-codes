@@ -5,6 +5,8 @@ import argparse
 import numpy as np
 from scipy.optimize import curve_fit
 
+vf_0 = np.sqrt(2) / 3.0 #Fermi velocity for central charge zero
+
 def parse_complex(val):
     if isinstance(val, dict):
         return complex(val["re"], val["im"])
@@ -61,9 +63,9 @@ def extrapolate_central_charge(data_by_L):
         lambda_0_dict[L] = lambda_0
 
         # Free energy f_L = 1/(3L) * ln |lambda_0| #Change: The log formula is for T
-        f_L = np.log(lambda_0) / (3*L)
+        #f_L = np.log(lambda_0) / (L)
         #The next formula is for H
-        #f_L = np.real(lambda_0) / (3*L)
+        f_L = -np.real(lambda_0) / (L)
 
         L_list.append(L)
         f_L_list.append(f_L)
@@ -81,7 +83,7 @@ def extrapolate_central_charge(data_by_L):
         try:
             popt, pcov = curve_fit(scaling_model, L_array, f_L_array)
             A, B, C = popt
-
+            
             f_inf = A
             f_sur = B / 2.0
             vFc = - (24 * C) / np.pi
@@ -125,7 +127,7 @@ def extrapolate_conformal_dimensions(data_by_L, lambda_0_dict, top_k=5):
                 if lam_j < 1e-12:
                     continue # avoid log(0) issues
 
-                h_j = (L / np.pi) * np.log(lambda_0 / lam_j)
+                h_j = (L /(np.pi * vf_0)) * np.log(lambda_0 / lam_j)
 
                 if rank not in h_data[sector]:
                     h_data[sector][rank] = {}
@@ -231,7 +233,7 @@ def main():
     parser = argparse.ArgumentParser(description="Extrapolate central charge and conformal dimensions from eigenvalue JSON files.")
     parser.add_argument("input_jsons", nargs="+", help="Paths to JSON files (e.g., experiment_outputs/all_eigenvalues_L*.json)")
     parser.add_argument("-o", "--output_prefix", type=str, default="extrapolated", help="Prefix for output files")
-    parser.add_argument("-k", "--top_k", type=int, default=5, help="Number of eigenvalues to track per sector")
+    parser.add_argument("-k", "--top_k", type=int, default=None, help="Number of eigenvalues to track per sector")
 
     args = parser.parse_args()
 
