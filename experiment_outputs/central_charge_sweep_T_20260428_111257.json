@@ -1,0 +1,18 @@
+{
+  "operator": "T",
+  "timestamp": "20260428_111257",
+  "data": {
+    "0.8": {
+      "L_values": [],
+      "f_L_values": [],
+      "eigenvalues": [],
+      "fit": null
+    },
+    "0.9": {
+      "L_values": [],
+      "f_L_values": [],
+      "eigenvalues": [],
+      "fit": null
+    }
+  }
+}

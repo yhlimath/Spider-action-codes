@@ -1,60 +1,20 @@
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 
 import numpy as np
 import copy
-import os
-from sl3hecke.sl3_hecke import Polynomial, e, generate_all_valid_strings
-from sl3hecke.magnetic_modules import ed, generate_constrained_strings
+from sl3_hecke import Polynomial, e, generate_all_valid_strings
 
 class SymbolicHeckeBuilder:
-    def __init__(self, L=None, is_magnetic=False, m=None, x=None, y=None, use_all_valid=False):
+    def __init__(self, L):
         self.L = L
-        self.is_magnetic = is_magnetic
-        self.m = m if m is not None else (3 * L if L is not None else None)
-        self.x = x
-        self.y = y
-        self.use_all_valid = use_all_valid
-
-        if is_magnetic:
-            if use_all_valid:
-                # generate all valid of length m
-                self.basis_strings = self._generate_all_valid_len_m(self.m)
-            else:
-                self.basis_strings = generate_constrained_strings(self.m, self.x, self.y)
-        else:
-            self.basis_strings = generate_all_valid_strings(L)
-
+        self.basis_strings = generate_all_valid_strings(L)
         self.dim = len(self.basis_strings)
         self.string_to_idx = {tuple(s): i for i, s in enumerate(self.basis_strings)}
 
-    def _generate_all_valid_len_m(self, m):
-        def backtrack(sequence, count_1, count_0, count_neg1, results):
-            if len(sequence) == m:
-                results.append(sequence[:])
-                return
-            backtrack(sequence + [1], count_1 + 1, count_0, count_neg1, results)
-            if count_0 < count_1:
-                backtrack(sequence + [0], count_1, count_0 + 1, count_neg1, results)
-            if count_neg1 < count_0:
-                backtrack(sequence + [-1], count_1, count_0, count_neg1 + 1, results)
-        results = []
-        backtrack([], 0, 0, 0, results)
-        return results
-
     def _apply_e_k(self, s, k):
         """Apply e_k symbolically to a basis string s."""
-        if self.is_magnetic:
-            if self.use_all_valid:
-                curr_x = s.count(1) - s.count(0)
-                curr_y = s.count(0) - s.count(-1)
-                results = ed([(Polynomial.constant(1), list(s))], k, self.m, curr_x, curr_y)
-            else:
-                results = ed([(Polynomial.constant(1), list(s))], k, self.m, self.x, self.y)
-        else:
-            results = e([(Polynomial.constant(1), list(s))], k)
+        # e(S, k) takes list of (coeff, string)
+        # Here input is (1, s)
+        results = e([(Polynomial.constant(1), s)], k)
         return results
 
     def get_H_matrix(self):
@@ -76,7 +36,7 @@ class SymbolicHeckeBuilder:
     def get_T_matrix(self):
         """Build the symbolic matrix for T = prod e_even * prod e_odd."""
 
-        num_generators = self.m - 1 if self.is_magnetic else 3 * self.L - 1
+        num_generators = 3 * self.L - 1
         odd_indices = range(1, num_generators + 1, 2)
         even_indices = range(2, num_generators + 1, 2)
 
@@ -230,17 +190,14 @@ class SymbolicHeckeBuilder:
             # print(f"    Basis[{c}] (Col): {col_basis}")
 
 def generate_symbolic_matrices(L_list=[2, 3]):
-    out_dir = "../experiment_outputs" if os.path.basename(os.getcwd()) == "python_implementation" else "experiment_outputs"
-    os.makedirs(out_dir, exist_ok=True)
-
     for L in L_list:
         print(f"\nGenerating symbolic matrices for L={L}...")
-        builder = SymbolicHeckeBuilder(L=L)
+        builder = SymbolicHeckeBuilder(L)
         print(f"  Dimension: {builder.dim}")
 
         # Basis
         basis_str = builder.basis_to_mathematica()
-        filename_basis = os.path.join(out_dir, f"basis_L{L}.m")
+        filename_basis = f"basis_L{L}.m"
         with open(filename_basis, 'w') as f:
             f.write(f"(* Basis vectors for L={L} *)\n")
             f.write(f"basisL{L} = {basis_str};\n")
@@ -249,7 +206,7 @@ def generate_symbolic_matrices(L_list=[2, 3]):
         # H Matrix
         H_mat = builder.get_H_matrix()
         H_str = builder.matrix_to_mathematica(H_mat)
-        filename_H = os.path.join(out_dir, f"H_matrix_L{L}.m")
+        filename_H = f"H_matrix_L{L}.m"
         with open(filename_H, 'w') as f:
             f.write(f"(* Hamiltonian Matrix H for L={L} *)\n")
             f.write(f"HL{L} = {H_str};\n")
@@ -261,7 +218,7 @@ def generate_symbolic_matrices(L_list=[2, 3]):
         # T Matrix
         T_mat = builder.get_T_matrix()
         T_str = builder.matrix_to_mathematica(T_mat)
-        filename_T = os.path.join(out_dir, f"T_matrix_L{L}.m")
+        filename_T = f"T_matrix_L{L}.m"
         with open(filename_T, 'w') as f:
             f.write(f"(* Transfer Matrix T for L={L} *)\n")
             f.write(f"TL{L} = {T_str};\n")
@@ -270,64 +227,5 @@ def generate_symbolic_matrices(L_list=[2, 3]):
         # Analyze T
         builder.analyze_structure(T_mat, "Transfer Matrix T", n_val=1.2345)
 
-def generate_magnetic_symbolic_matrices(S_list=[2, 3]):
-    out_dir = "../experiment_outputs" if os.path.basename(os.getcwd()) == "python_implementation" else "experiment_outputs"
-    os.makedirs(out_dir, exist_ok=True)
-
-    for S in S_list:
-        print(f"\nGenerating symbolic magnetic matrices for S={S}...")
-
-        # 1. Entire Space
-        builder_all = SymbolicHeckeBuilder(is_magnetic=True, m=S, use_all_valid=True)
-        print(f"  Entire space dimension: {builder_all.dim}")
-
-        if builder_all.dim > 0:
-            basis_str = builder_all.basis_to_mathematica()
-            filename_basis = os.path.join(out_dir, f"basis_magnetic_S{S}_all.m")
-            with open(filename_basis, 'w') as f:
-                f.write(f"(* Basis vectors for magnetic S={S} (entire) *)\n")
-                f.write(f"basisMagS{S}All = {basis_str};\n")
-
-            T_mat_all = builder_all.get_T_matrix()
-            T_str_all = builder_all.matrix_to_mathematica(T_mat_all)
-            filename_T_all = os.path.join(out_dir, f"T_matrix_magnetic_S{S}_all.m")
-            with open(filename_T_all, 'w') as f:
-                f.write(f"(* Transfer Matrix T for magnetic S={S} (entire) *)\n")
-                f.write(f"TMagS{S}All = {T_str_all};\n")
-            print(f"  Saved entire T matrix to {filename_T_all}")
-            # Analyze T entire
-            builder_all.analyze_structure(T_mat_all, f"Entire Transfer Matrix T (S={S})", n_val=1.2345)
-
-        # 2. Block sectors
-        endpoints = set()
-        for string in builder_all.basis_strings:
-            x = string.count(1) - string.count(0)
-            y = string.count(0) - string.count(-1)
-            endpoints.add((x, y))
-
-        for (x, y) in sorted(list(endpoints)):
-            builder_block = SymbolicHeckeBuilder(is_magnetic=True, m=S, x=x, y=y)
-            print(f"  Block sector (x={x}, y={y}): dim = {builder_block.dim}")
-
-            if builder_block.dim > 0:
-                basis_str = builder_block.basis_to_mathematica()
-                filename_basis = os.path.join(out_dir, f"basis_magnetic_S{S}_x{x}_y{y}.m")
-                with open(filename_basis, 'w') as f:
-                    f.write(f"(* Basis vectors for magnetic S={S}, x={x}, y={y} *)\n")
-                    f.write(f"basisMagS{S}x{x}y{y} = {basis_str};\n")
-
-                T_mat_block = builder_block.get_T_matrix()
-                T_str_block = builder_block.matrix_to_mathematica(T_mat_block)
-                filename_T_block = os.path.join(out_dir, f"T_matrix_magnetic_S{S}_x{x}_y{y}.m")
-                with open(filename_T_block, 'w') as f:
-                    f.write(f"(* Transfer Matrix T for magnetic S={S}, x={x}, y={y} *)\n")
-                    f.write(f"TMagS{S}x{x}y{y} = {T_str_block};\n")
-                print(f"    Saved block T matrix to {filename_T_block}")
-
 if __name__ == "__main__":
-    # Generate vacuum module matrices (L=2) to keep tests fast
-    # generate_symbolic_matrices(L_list=[2])
-
-    # Generate magnetic module matrices (S=3, 4)
-    # S=3 dim=3, S=4 dim=9
-    generate_magnetic_symbolic_matrices(S_list=[2])
+    generate_symbolic_matrices()
