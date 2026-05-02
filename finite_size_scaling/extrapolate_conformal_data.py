@@ -103,7 +103,7 @@ def extrapolate_central_charge(data_by_L, operator="T"):
 
 import itertools
 
-def extrapolate_conformal_dimensions(data_by_L, lambda_0_dict, top_k=5, operator="T"):
+def extrapolate_conformal_dimensions(data_by_L, lambda_0_dict, top_k=5, operator="T", vF=1.0):
     L_sorted = sorted(data_by_L.keys())
 
     # Pre-calculate all h_j(L) for each sector, L, and rank up to top_k + delta
@@ -135,9 +135,9 @@ def extrapolate_conformal_dimensions(data_by_L, lambda_0_dict, top_k=5, operator
                     lam_j = abs(eig)
                     if lam_j < 1e-12:
                         continue
-                    h_j = (L / np.pi) * np.log(lambda_0_mod / lam_j)
+                    h_j = (L / (np.pi * vF)) * np.log(lambda_0_mod / lam_j)
                 else:
-                    h_j = (L / (2 * np.pi)) * (np.real(eig) - np.real(lambda_0_cplx))
+                    h_j = (L / (2 * np.pi * vF)) * (np.real(lambda_0_cplx) - np.real(eig))
 
                 raw_h[sector][L][rank] = h_j
 
@@ -319,6 +319,7 @@ def main():
     parser.add_argument("-o", "--output_prefix", type=str, default="extrapolated", help="Prefix for output files")
     parser.add_argument("-k", "--top_k", type=int, default=50, help="Number of eigenvalues to track per sector")
     parser.add_argument("-O", "--operator", choices=["H", "T"], default="H", help="Operator to analyze (H or T)")
+    parser.add_argument("--vF", type=float, default=1.0, help="Fermi velocity v_F to scale conformal dimensions (default 1.0)")
 
     args = parser.parse_args()
 
@@ -347,15 +348,15 @@ def main():
     else:
         print("\nNot enough points (need at least 3) to extrapolate central charge.")
 
-    h_extrapolations = extrapolate_conformal_dimensions(data_by_L, cc_results["lambda_0"], top_k=args.top_k, operator=args.operator)
-    print("\nConformal Dimensions Extrapolation:")
+    h_extrapolations = extrapolate_conformal_dimensions(data_by_L, cc_results["lambda_0"], top_k=args.top_k, operator=args.operator, vF=args.vF)
+    print(f"\nConformal Dimensions Extrapolation (vF = {args.vF}):")
     print("-----------------------------------")
     for sector, ranks in sorted(h_extrapolations.items()):
         for rank, res in sorted(ranks.items()):
             if res["fit_success"]:
-                print(f"Sector {sector:<10} Rank {rank}: h_inf = {res['h_inf']:.6f}")
+                print(f"Sector {sector:<10} Rank {rank}: h_inf (scaled) = {res['h_inf']:.6f}")
             elif len(res["L_vals"]) == 1:
-                print(f"Sector {sector:<10} Rank {rank}: h(L={res['L_vals'][0]}) = {res['h_vals'][0]:.6f} (No extrapolation)")
+                print(f"Sector {sector:<10} Rank {rank}: h(L={res['L_vals'][0]}) (scaled) = {res['h_vals'][0]:.6f} (No extrapolation)")
 
     export_outputs(cc_results, h_extrapolations, args.output_prefix)
 

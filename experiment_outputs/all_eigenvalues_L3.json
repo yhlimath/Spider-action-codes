@@ -1,0 +1,16 @@
+{
+  "L": 3,
+  "n": 1.372,
+  "modules": {
+    "x=0, y=0": {
+      "dimension": 1,
+      "eigenvalues": []
+    },
+    "x=1, y=1": {
+      "dimension": 2,
+      "eigenvalues": [
+        1.0
+      ]
+    }
+  }
+}

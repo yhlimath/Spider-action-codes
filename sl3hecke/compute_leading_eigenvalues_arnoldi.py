@@ -3,7 +3,6 @@ import os
 import argparse
 import numpy as np
 import json
-import time
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sl3hecke.sl3_hecke import Polynomial
@@ -109,13 +108,13 @@ def compute_all_arnoldi(L, n_val, top_k, operator='T'):
     total_valid_modules = 0
     total_dimension = 0
 
-    for x in range(1): #Change: only analyze (x,y)=(0,0) sector for now
-        for y in range(1):
+    for x in range(L + 1):
+        for y in range(L + 1):
             if 2*x + y > L: continue
             if (L + 2*x + y) % 3 != 0: continue
 
             print(f"\nEvaluating sector (x,y) = ({x},{y})...")
-            start_time = time.time()
+
             solver = MagneticArnoldiSolver(m=L, x=x, y=y, n_value=n_val)
             dim = solver.dim
 
@@ -151,8 +150,7 @@ def compute_all_arnoldi(L, n_val, top_k, operator='T'):
                 eigs_sorted = eigs_sorted[:top_k]
 
             print(f"  Non-zero leading eigenvalues found: {len(eigs_sorted)}")
-            print(f"  Time elapsed: {time.time() - start_time:.2f}s")
-            
+
             eigs_export = [float(e) if np.abs(e.imag) < 1e-10 else {"re": float(e.real), "im": float(e.imag)} for e in eigs_sorted]
 
             results["modules"][f"x={x}, y={y}"] = {
@@ -165,10 +163,10 @@ def compute_all_arnoldi(L, n_val, top_k, operator='T'):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute top explicit non-zero eigenvalues matrix-free via Arnoldi for valid sl3 magnetic modules V^{L, (x,y)}")
-    parser.add_argument("-L", type=int, default=9, help="System size L")
-    parser.add_argument("-n", "--n_val", type=float, default=1.414213562373095, help="Numeric loop weight n (default 1.414213562373095)")
-    parser.add_argument("-k", "--top_k", type=int, default=50, help="Number of leading eigenvalues to extract per sector (default 10)")
-    parser.add_argument("-O", "--operator", type=str, default="H", choices=["T", "H"], help="Operator to diagonalize: 'T' (Transfer Matrix) or 'H' (Hamiltonian)")
+    parser.add_argument("-L", type=int, required=True, help="System size L")
+    parser.add_argument("-n", "--n_val", type=float, default=1.372, help="Numeric loop weight n (default 1.372)")
+    parser.add_argument("-k", "--top_k", type=int, default=10, help="Number of leading eigenvalues to extract per sector (default 10)")
+    parser.add_argument("-O", "--operator", type=str, default="T", choices=["T", "H"], help="Operator to diagonalize: 'T' (Transfer Matrix) or 'H' (Hamiltonian)")
 
     args = parser.parse_args()
 
