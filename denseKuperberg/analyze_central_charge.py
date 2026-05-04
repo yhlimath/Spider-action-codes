@@ -63,8 +63,8 @@ def plot_central_charge_extrapolations():
     out_dir = "experiment_outputs/denseKuperberg"
 
     # Let's plot for staggered and sequential, E+H+H2 and E+H
-    for order in ['sequential', 'staggered']:
-        for t in ['E+H+H2', 'E+H']:
+    for order in ['sequential']: #, 'staggered'
+        for t in ['E+H']: #'E+H+H2', 
             plt.figure(figsize=(10, 6))
 
             for n_str in logs[t][order]:

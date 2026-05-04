@@ -3,6 +3,8 @@ import json
 import os
 import time
 from scipy.linalg import eigvals
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from denseKuperberg.arnoldi import KuperbergArnoldiSolver
 
 def get_n_values(config):
@@ -19,20 +21,20 @@ def get_n_values(config):
     return sorted(list(n_vals))
 
 def compute_and_log():
-    L_list = [2, 3, 4, 5, 6]
+    L_list = [3,4,5,6,7,8,9]#4, 5, 6, 7, 8
 
     config = {
-        'specific_values': [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0],
+        'specific_values': [1.41421356237095, 0.8660254037844386, 0.7071067811865476, 1.7320508075688772], # sqrt(2) and 1/sqrt(2)
         'sweep': {
-            'start': 0.5,
-            'stop': 2.0,
-            'step': 0.25
+            'start': -1.0,
+            'stop': 2.5,
+            'step': 0.1
         }
     }
 
     n_values = get_n_values(config)
-    types = ['E+H+H2', 'E+H', 'H2']
-    orders = ['sequential', 'staggered']
+    types = ['E+H'] # 'H2' 'E+H+H2'
+    orders = ['sequential'] # 'staggered'
     x, y = 0, 0
     arnoldi_k = 50
 
