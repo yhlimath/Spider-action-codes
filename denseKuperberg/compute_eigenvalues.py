@@ -1,15 +1,21 @@
+import os
+import sys
+
+
 import numpy as np
 import json
 import os
 import time
 from scipy.linalg import eigvals
-from denseKuperberg.transfer_matrix import build_transfer_matrix
+from transfer_matrix import build_transfer_matrix
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def compute_and_log():
-    L_list = [2, 3, 4, 5, 6]
-    n_values = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0]
+    L_list = [ 4, 5, 6]
+    n_values = [0.5, 0.7, 0.9, 1.0, 1.2, 1.41421356, 1.5, 1.8, 2.0]
     types = ['E+H+H2', 'E+H', 'H2']
-    orders = ['sequential', 'staggered']
+    orders = ['sequential', 'staggered'] #
     x, y = 0, 0
 
     out_dir = "experiment_outputs/denseKuperberg"

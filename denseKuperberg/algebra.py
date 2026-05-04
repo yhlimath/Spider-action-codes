@@ -1,3 +1,8 @@
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from denseKuperberg.operations import homogenize_H_i, reverse_operations, apply_operations, branch_Y, merge_Y_inv
 from sl3hecke.sl3_hecke import e, Polynomial
 

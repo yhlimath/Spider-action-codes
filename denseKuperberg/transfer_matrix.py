@@ -1,6 +1,11 @@
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 import numpy as np
-from denseKuperberg.states import generate_paths
-from denseKuperberg.algebra import action_E_i, action_H_i
+from states import generate_paths
+from algebra import action_E_i, action_H_i
 from sl3hecke.sl3_hecke import Polynomial
 
 def evaluate_coeff(coeff, n_value):

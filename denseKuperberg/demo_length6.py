@@ -1,3 +1,10 @@
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from denseKuperberg.states import generate_paths
 from denseKuperberg.algebra import action_E_i, action_H_i
 
