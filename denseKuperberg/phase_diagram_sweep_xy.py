@@ -2,6 +2,9 @@ import numpy as np
 import json
 import os
 import argparse
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import matplotlib.pyplot as plt
 from scipy.sparse.linalg import eigs
 from scipy.sparse.linalg import LinearOperator
@@ -11,7 +14,7 @@ from denseKuperberg.arnoldi import KuperbergArnoldiSolver
 def fit_f_L(L_vals, lam_vals):
     f_L_vals = []
     for L, lam in zip(L_vals, lam_vals):
-        f_L = -np.log(abs(lam)) / L
+        f_L =-np.log(abs(lam)) / L
         f_L_vals.append(f_L)
 
     if len(L_vals) >= 3:
@@ -28,13 +31,13 @@ def fit_f_L(L_vals, lam_vals):
 
 def sweep():
     parser = argparse.ArgumentParser(description="Sweep x and y to build phase diagram for a fixed n")
-    parser.add_argument('--n_val', type=float, default=1.0)
-    parser.add_argument('--x_start', type=float, default=0.1)
-    parser.add_argument('--x_stop', type=float, default=2.0)
-    parser.add_argument('--x_step', type=float, default=0.2)
+    parser.add_argument('--n_val', type=float, default=1.4142)
+    parser.add_argument('--x_start', type=float, default=0.0)
+    parser.add_argument('--x_stop', type=float, default=1.0)
+    parser.add_argument('--x_step', type=float, default=0.1)
     parser.add_argument('--y_start', type=float, default=0.1)
-    parser.add_argument('--y_stop', type=float, default=2.0)
-    parser.add_argument('--y_step', type=float, default=0.2)
+    parser.add_argument('--y_stop', type=float, default=1.5)
+    parser.add_argument('--y_step', type=float, default=0.1)
     parser.add_argument('--L_max', type=int, default=6)
     args = parser.parse_args()
 
