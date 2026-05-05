@@ -2,9 +2,8 @@ import numpy as np
 import json
 import os
 import time
-from scipy.linalg import eigvals
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from scipy.sparse.linalg import eigs
+from scipy.sparse.linalg import LinearOperator
 from denseKuperberg.arnoldi import KuperbergArnoldiSolver
 
 def get_n_values(config):
@@ -15,33 +14,31 @@ def get_n_values(config):
         start = config['sweep'].get('start', 0.5)
         stop = config['sweep'].get('stop', 2.0)
         step = config['sweep'].get('step', 0.1)
-        # Using np.arange could cause float precision issues, so we round
         sweep_vals = np.arange(start, stop + step/2, step)
         n_vals.update(np.round(sweep_vals, 4))
     return sorted(list(n_vals))
 
 def compute_and_log():
-    L_list = [3,4,5,6,7,8,9]#4, 5, 6, 7, 8
+    L_list = [2, 3, 4, 5, 6]
 
     config = {
-        'specific_values': [1.41421356237095, 0.8660254037844386, 0.7071067811865476, 1.7320508075688772], # sqrt(2) and 1/sqrt(2)
+        'specific_values': [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0],
         'sweep': {
-            'start': -1.0,
-            'stop': 2.5,
-            'step': 0.1
+            'start': 0.5,
+            'stop': 2.0,
+            'step': 0.25
         }
     }
 
     n_values = get_n_values(config)
-    types = ['E+H'] # 'H2' 'E+H+H2'
-    orders = ['sequential'] # 'staggered'
+    types = ['E+H+H2', 'E+H', 'H2']
+    orders = ['sequential', 'staggered']
     x, y = 0, 0
-    arnoldi_k = 50
+    extract_top_k = 50
 
     out_dir = "experiment_outputs/denseKuperberg"
     os.makedirs(out_dir, exist_ok=True)
 
-    # Structure: logs[type][order][n][L] = lambda_0
     logs = {t: {o: {str(n): {} for n in n_values} for o in orders} for t in types}
 
     for L in L_list:
@@ -55,33 +52,47 @@ def compute_and_log():
 
                     solver = KuperbergArnoldiSolver(L, x, y, type_str, order_str, n)
 
-                    if solver.dim == 0:
-                        lambda_0 = None
-                    else:
-                        H_matrix, _ = solver.arnoldi_iteration(arnoldi_k)
-                        if H_matrix.shape[0] == 0:
-                            lambda_0 = None
+                    top_eigenvalues = []
+                    if solver.dim > 0:
+                        if solver.dim <= extract_top_k:
+                            # For small dims, use standard dense eig
+                            from scipy.linalg import eigvals
+                            H_matrix, _ = solver.arnoldi_iteration(solver.dim)
+                            if H_matrix.shape[0] > 0:
+                                evs = eigvals(H_matrix)
                         else:
-                            evs = eigvals(H_matrix)
-                            evs = [ev for ev in evs if abs(ev) > 1e-10]
-                            if not evs:
-                                lambda_0 = None
+                            # Use Implicitly Restarted Arnoldi for true extreme eigenvalues
+                            # We need ncv > k. scipy defaults to 2*k+1 or similar.
+                            # k cannot be >= dim-1.
+                            k_actual = min(extract_top_k, solver.dim - 2)
+                            if k_actual > 0:
+                                def matvec(v):
+                                    return solver.apply_T(v)
+                                A = LinearOperator((solver.dim, solver.dim), matvec=matvec, dtype=complex)
+                                evs, _ = eigs(A, k=k_actual, which='LM')
                             else:
-                                evs.sort(key=lambda x: abs(x), reverse=True)
-                                l0 = evs[0]
-                                lambda_0 = {"real": float(l0.real), "imag": float(l0.imag), "abs": float(abs(l0))}
+                                evs = []
 
-                    if lambda_0:
-                        logs[type_str][order_str][n_str][L] = lambda_0
+                        if 'evs' in locals() and len(evs) > 0:
+                            evs = [ev for ev in evs if abs(ev) > 1e-10]
+                            if evs:
+                                evs.sort(key=lambda v: abs(v), reverse=True)
+                                for l in evs[:extract_top_k]:
+                                    top_eigenvalues.append({
+                                        "real": float(l.real),
+                                        "imag": float(l.imag),
+                                        "abs": float(abs(l))
+                                    })
+
+                    if top_eigenvalues:
+                        logs[type_str][order_str][n_str][L] = top_eigenvalues
 
                     elapsed = time.time() - start_time
-                    print(f"  n={n:.4f}: dim={solver.dim}, elapsed={elapsed:.2f}s, lambda_0={lambda_0['abs'] if lambda_0 else 'None'}")
+                    l0_str = f"{top_eigenvalues[0]['abs']:.4f}" if top_eigenvalues else "None"
+                    print(f"  n={n:.4f}: dim={solver.dim}, elapsed={elapsed:.2f}s, top {len(top_eigenvalues)} evs, lambda_0={l0_str}")
 
-    # Save to JSON
-    out_file = os.path.join(out_dir, "eigenvalue_logs.json")
-    with open(out_file, 'w') as f:
+    with open(os.path.join(out_dir, "eigenvalue_logs_top_k.json"), 'w') as f:
         json.dump(logs, f, indent=2)
-    print(f"\nSaved logs to {out_file}")
 
 if __name__ == "__main__":
     compute_and_log()

@@ -38,14 +38,14 @@ def apply_T_i(coeff, path, i, type_str, n_value):
         res_E = apply_action(base_state, action_E_i, i, n_value)
         add_to_result(res_E)
 
-    if type_str in ['E+H+H2', 'E+H', 'H2']:
+    if type_str in ['E+H+H2', 'E+H']:
         res_H = apply_action(base_state, action_H_i, i, n_value)
         add_to_result(res_H)
 
     if type_str == 'E+H+H2' or type_str == 'H2':
         # Apply H_i again for H_i^2
-        if 'res_H' not in locals():
-            res_H = apply_action(base_state, action_H_i, i, n_value)
+        # For H2 only, we didn't compute res_H above
+        res_H = apply_action(base_state, action_H_i, i, n_value)
         # res_H is dict of path_tuple -> coeff
         # convert back to list for apply_action
         h_states = [(c, list(p)) for p, c in res_H.items()]
@@ -91,10 +91,6 @@ def build_transfer_matrix(L, x, y, type_str, order_str, n_value):
         indices = list(range(num_generators))
         layers = [indices]
     elif order_str == 'staggered':
-        odd_indices = list(range(1, num_generators, 2))  # 1, 3, 5... (0-indexed these are odd positions, but wait: 1, 3, 5 are indices of generators. So T_1, T_3...)
-        # Wait, python index is 0-based.
-        # For L=4, generators are 0, 1, 2.
-        # Odd python indices: 1. Even python indices: 0, 2.
         odd_indices = list(range(1, num_generators, 2))
         even_indices = list(range(0, num_generators, 2))
         layers = [odd_indices, even_indices]
@@ -111,8 +107,6 @@ def build_transfer_matrix(L, x, y, type_str, order_str, n_value):
                 target_idx = path_to_idx[p_tup]
                 matrix[target_idx, idx] += c
             else:
-                # Should not happen since operations should preserve the (x,y) constraints globally.
-                # But just in case
                 pass
 
     return matrix, paths
