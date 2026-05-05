@@ -28,11 +28,11 @@ def compute_and_log():
     L_list = [5,6,7,8]
 
     config = {
-        'specific_values': [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0],
+        'specific_values': [1.4142, 1.6180],  # sqrt(2) and golden ratio
         'sweep': {
-            'start': 0.5,
+            'start': 0.0,
             'stop': 2.0,
-            'step': 0.25
+            'step': 0.1
         }
     }
 

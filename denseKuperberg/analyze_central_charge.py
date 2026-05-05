@@ -4,7 +4,7 @@ import os
 import matplotlib.pyplot as plt
 
 def analyze_logs():
-    in_file = "experiment_outputs/denseKuperberg/eigenvalue_logs.json"
+    in_file = "experiment_outputs/denseKuperberg/leading_eigenvalue_sweep.json"
     if not os.path.exists(in_file):
         print(f"Log file {in_file} not found.")
         return
@@ -55,7 +55,7 @@ def plot_central_charge_extrapolations():
     import json, os, numpy as np
     import matplotlib.pyplot as plt
 
-    in_file = "experiment_outputs/denseKuperberg/eigenvalue_logs.json"
+    in_file = "experiment_outputs/denseKuperberg/leading_eigenvalue_sweep.json"
     if not os.path.exists(in_file): return
     with open(in_file, 'r') as f:
         logs = json.load(f)
@@ -63,8 +63,8 @@ def plot_central_charge_extrapolations():
     out_dir = "experiment_outputs/denseKuperberg"
 
     # Let's plot for staggered and sequential, E+H+H2 and E+H
-    for order in ['sequential', 'staggered']:
-        for t in ['E+H+H2', 'E+H']:
+    for order in ['sequential']:
+        for t in ['E+H']:
             plt.figure(figsize=(10, 6))
 
             for n_str in logs[t][order]:
