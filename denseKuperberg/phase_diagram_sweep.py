@@ -3,6 +3,8 @@ import json
 import os
 import time
 import argparse
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import matplotlib.pyplot as plt
 from scipy.sparse.linalg import eigs
 from scipy.sparse.linalg import LinearOperator
@@ -29,23 +31,23 @@ def fit_f_L(L_vals, lam_vals):
 
 def sweep():
     parser = argparse.ArgumentParser(description="Sweep x and n to build phase diagram")
-    parser.add_argument('--x_start', type=float, default=0.1)
-    parser.add_argument('--x_stop', type=float, default=2.0)
-    parser.add_argument('--x_step', type=float, default=0.2)
-    parser.add_argument('--n_start', type=float, default=0.5)
-    parser.add_argument('--n_stop', type=float, default=2.0)
-    parser.add_argument('--n_step', type=float, default=0.2)
+    parser.add_argument('--x_start', type=float, default=1)
+    parser.add_argument('--x_stop', type=float, default=2.5)
+    parser.add_argument('--x_step', type=float, default=0.1)
+    parser.add_argument('--n_start', type=float, default=0.2)
+    parser.add_argument('--n_stop', type=float, default=1.4)
+    parser.add_argument('--n_step', type=float, default=0.1)
     parser.add_argument('--L_max', type=int, default=6)
     args = parser.parse_args()
 
-    L_list = [3, 4, 5, 6]
+    L_list = [4, 5, 6]
     # filter L_list based on L_max
     L_list = [L for L in L_list if L <= args.L_max]
 
     x_vals = np.arange(args.x_start, args.x_stop + args.x_step/2, args.x_step)
     n_vals = np.arange(args.n_start, args.n_stop + args.n_step/2, args.n_step)
 
-    order = 'staggered'
+    order = 'sequential'
 
     results = {}
     C_matrix = np.zeros((len(n_vals), len(x_vals)))
@@ -105,7 +107,10 @@ def sweep():
     plt.xlabel("Boltzmann weight x")
     plt.ylabel("Loop weight n")
 
-    plt.savefig(os.path.join(out_dir, "phase_diagram_C.png"), dpi=150)
+    #plt.savefig(os.path.join(out_dir, "phase_diagram_C.png"), dpi=150)
+    #plt.close()
+    filename = f"phase_diagram_C_x_{args.x_start:.2f}-{args.x_stop:.2f}_n_{args.n_start:.2f}-{args.n_stop:.2f}.png"
+    plt.savefig(os.path.join(out_dir, filename), dpi=150)
     plt.close()
 
     with open(os.path.join(out_dir, "phase_diagram_data.json"), 'w') as f:
