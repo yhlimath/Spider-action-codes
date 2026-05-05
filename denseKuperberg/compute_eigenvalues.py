@@ -1,7 +1,12 @@
 import numpy as np
 import json
-import os
 import time
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 from scipy.sparse.linalg import eigs
 from scipy.sparse.linalg import LinearOperator
 from denseKuperberg.arnoldi import KuperbergArnoldiSolver
@@ -19,20 +24,20 @@ def get_n_values(config):
     return sorted(list(n_vals))
 
 def compute_and_log():
-    L_list = [2, 3, 4, 5, 6]
+    L_list = [ 5, 6, 7, 8]
 
     config = {
-        'specific_values': [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0],
+        'specific_values': [1.4142],  # sqrt(2) and golden ratio
         'sweep': {
-            'start': 0.5,
-            'stop': 2.0,
+            'start': 0,
+            'stop': -1,
             'step': 0.25
         }
     }
 
     n_values = get_n_values(config)
-    types = ['E+H+H2', 'E+H', 'H2']
-    orders = ['sequential', 'staggered']
+    types = ['E+H'] #'E+H+H2', 'E+H', 'H2'
+    orders = ['sequential'] #, 'staggered'
     x, y = 0, 0
     extract_top_k = 50
 
