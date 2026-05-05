@@ -139,3 +139,97 @@ def action_H_i(coeff, path, i):
         final_results.append((res_coeff, final_path))
 
     return final_results
+
+def action_ID_i(coeff, path, i):
+    """
+    Identity operator. Returns the path unchanged.
+    """
+    return [(coeff, path)]
+
+def action_idD_i(coeff, path, i):
+    """
+    Projector that maps as identity if i and i+1 have distinct signs,
+    and returns 0 if they have identical signs.
+    """
+    s_i = path[i][0]
+    s_next = path[i+1][0]
+    if s_i != s_next:
+        return [(coeff, path)]
+    return []
+
+def action_TLD_i(coeff, path, i):
+    """
+    TLD_i = H_i^2 - idD_i
+    """
+    result = []
+
+    # Apply H_i^2
+    res_H = action_H_i(coeff, path, i)
+    for c_h, p_h in res_H:
+        res_H2 = action_H_i(c_h, p_h, i)
+        result.extend(res_H2)
+
+    # Apply -idD_i
+    res_idD = action_idD_i(-coeff, path, i)
+    result.extend(res_idD)
+
+    return result
+
+def action_TLI_i(coeff, path, i, res_TLD=None):
+    """
+    TLI_i = P_i circ TLD_i
+    where P_i flips the signs at steps i and i+1 without changing the j values.
+    """
+    if res_TLD is None:
+        res_TLD = action_TLD_i(coeff, path, i)
+
+    result = []
+    for c, p in res_TLD:
+        new_p = p[:]
+        # Flip signs at i and i+1
+        new_p[i] = (-new_p[i][0], new_p[i][1])
+        new_p[i+1] = (-new_p[i+1][0], new_p[i+1][1])
+        result.append((c, new_p))
+
+    return result
+
+def action_TL_i(coeff, path, i):
+    """
+    TL_i = TLD_i + TLI_i
+    Optimized to compute TLD_i only once.
+    """
+    res_TLD = action_TLD_i(coeff, path, i)
+    res_TLI = action_TLI_i(coeff, path, i, res_TLD=res_TLD)
+
+    # Combine results
+    result = res_TLD[:]
+    result.extend(res_TLI)
+    return result
+
+def action_T_x_i(coeff, path, i, x, n_value):
+    """
+    The full parameterized transfer matrix action:
+    T_i = (I + TL_i) + x(E_i + H_i)
+    """
+    from sl3hecke.sl3_hecke import Polynomial
+
+    # We will compute each part and combine
+    result = []
+
+    # I
+    result.extend(action_ID_i(coeff, path, i))
+
+    # TL_i
+    result.extend(action_TL_i(coeff, path, i))
+
+    # x * E_i
+    if isinstance(coeff, Polynomial):
+        cx = coeff * x
+    else:
+        cx = coeff * x
+    result.extend(action_E_i(cx, path, i))
+
+    # x * H_i
+    result.extend(action_H_i(cx, path, i))
+
+    return result

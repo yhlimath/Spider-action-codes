@@ -1,6 +1,6 @@
 import numpy as np
 from denseKuperberg.states import generate_paths
-from denseKuperberg.algebra import action_E_i, action_H_i
+from denseKuperberg.algebra import action_E_i, action_H_i, action_T_x_i
 from sl3hecke.sl3_hecke import Polynomial
 
 def evaluate_coeff(coeff, n_value):
@@ -23,16 +23,18 @@ def apply_action(paths_with_coeffs, action_func, i, n_value):
                 result[p_tup] = result.get(p_tup, 0) + val
     return result
 
-def apply_T_i(coeff, path, i, type_str, n_value):
-    """
-    Applies T_i to a path and returns a dictionary mapping path_tuple -> new_coeff.
-    """
+def apply_T_i(coeff, path, i, type_str, n_value, x_value=None):
     base_state = [(coeff, path)]
     result = {}
 
     def add_to_result(action_dict):
         for p, c in action_dict.items():
             result[p] = result.get(p, 0) + c
+
+    if type_str == 'T(x)':
+        res = apply_action(base_state, lambda c, p, idx: action_T_x_i(c, p, idx, x_value, n_value), i, n_value)
+        add_to_result(res)
+        return result
 
     if type_str == 'E+H+H2' or type_str == 'E+H':
         res_E = apply_action(base_state, action_E_i, i, n_value)
@@ -43,11 +45,7 @@ def apply_T_i(coeff, path, i, type_str, n_value):
         add_to_result(res_H)
 
     if type_str == 'E+H+H2' or type_str == 'H2':
-        # Apply H_i again for H_i^2
-        # For H2 only, we didn't compute res_H above
         res_H = apply_action(base_state, action_H_i, i, n_value)
-        # res_H is dict of path_tuple -> coeff
-        # convert back to list for apply_action
         h_states = [(c, list(p)) for p, c in res_H.items()]
         if h_states:
             res_H2 = apply_action(h_states, action_H_i, i, n_value)
@@ -55,7 +53,7 @@ def apply_T_i(coeff, path, i, type_str, n_value):
 
     return result
 
-def apply_layer(state_dict, indices, type_str, n_value):
+def apply_layer(state_dict, indices, type_str, n_value, x_value=None):
     """
     Applies T_i for all i in indices sequentially to state_dict.
     state_dict is path_tuple -> coeff.
@@ -64,14 +62,14 @@ def apply_layer(state_dict, indices, type_str, n_value):
     for i in indices:
         next_state = {}
         for p_tup, c in current_state.items():
-            res = apply_T_i(c, list(p_tup), i, type_str, n_value)
+            res = apply_T_i(c, list(p_tup), i, type_str, n_value, x_value)
             for new_p, new_c in res.items():
                 if abs(new_c) > 1e-12:
                     next_state[new_p] = next_state.get(new_p, 0) + new_c
         current_state = next_state
     return current_state
 
-def build_transfer_matrix(L, x, y, type_str, order_str, n_value):
+def build_transfer_matrix(L, x, y, type_str, order_str, n_value, x_value=None):
     """
     Builds the dense transfer matrix.
     order_str: 'sequential' or 'staggered'
@@ -100,7 +98,7 @@ def build_transfer_matrix(L, x, y, type_str, order_str, n_value):
     for idx, p in enumerate(paths):
         state = {tuple(p): 1.0}
         for layer_indices in layers:
-            state = apply_layer(state, layer_indices, type_str, n_value)
+            state = apply_layer(state, layer_indices, type_str, n_value, x_value)
 
         for p_tup, c in state.items():
             if p_tup in path_to_idx:
