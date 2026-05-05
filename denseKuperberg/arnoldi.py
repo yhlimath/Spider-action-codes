@@ -4,13 +4,12 @@ from denseKuperberg.states import generate_paths
 from denseKuperberg.transfer_matrix import apply_T_i
 
 class KuperbergArnoldiSolver:
-    def __init__(self, L, x, y, type_str, order_str, n_value, x_value=None, y_value=None):
+    def __init__(self, L, x, y, type_str, order_str, n_value, x_value=None):
         self.L = L
         self.type_str = type_str
         self.order_str = order_str
         self.n_value = n_value
         self.x_value = x_value
-        self.y_value = y_value
 
         self.basis_paths = generate_paths(L, x, y)
         self.dim = len(self.basis_paths)
@@ -34,7 +33,7 @@ class KuperbergArnoldiSolver:
         if key in self.cache:
             return self.cache[key]
 
-        res = apply_T_i(1.0, list(path_tuple), i, self.type_str, self.n_value, self.x_value, self.y_value)
+        res = apply_T_i(1.0, list(path_tuple), i, self.type_str, self.n_value, self.x_value)
 
         action_results = []
         for p, c in res.items():

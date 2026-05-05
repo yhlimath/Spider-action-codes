@@ -205,31 +205,48 @@ def action_TL_i(coeff, path, i):
     result = res_TLD[:]
     result.extend(res_TLI)
     return result
-def action_T_xy_i(coeff, path, i, x, y, n_value):
+def action_T1_x_i(coeff, path, i, x, n_value):
     """
-    The full parameterized transfer matrix action:
-    T_i = x(I + TL_i) + y(E_i + H_i)
+    T_i = (I + TL_i) + x(E_i + H_i)
     """
     from sl3hecke.sl3_hecke import Polynomial
 
     result = []
 
-    # x * (I + TL_i)
+    # (I + TL_i)
+    result.extend(action_ID_i(coeff, path, i))
+    result.extend(action_TL_i(coeff, path, i))
+
+    # x * (E_i + H_i)
     if isinstance(coeff, Polynomial):
         cx = coeff * x
     else:
         cx = coeff * x
 
-    result.extend(action_ID_i(cx, path, i))
+    result.extend(action_E_i(cx, path, i))
+    result.extend(action_H_i(cx, path, i))
+
+    return result
+
+def action_T2_x_i(coeff, path, i, x, n_value):
+    """
+    T_i = I + x(TL_i + E_i + H_i)
+    """
+    from sl3hecke.sl3_hecke import Polynomial
+
+    result = []
+
+    # I
+    result.extend(action_ID_i(coeff, path, i))
+
+    # x * (TL_i + E_i + H_i)
+    if isinstance(coeff, Polynomial):
+        cx = coeff * x
+    else:
+        cx = coeff * x
+
     result.extend(action_TL_i(cx, path, i))
-
-    # y * (E_i + H_i)
-    if isinstance(coeff, Polynomial):
-        cy = coeff * y
-    else:
-        cy = coeff * y
-
-    result.extend(action_E_i(cy, path, i))
-    result.extend(action_H_i(cy, path, i))
+    result.extend(action_E_i(cx, path, i))
+    result.extend(action_H_i(cx, path, i))
 
     return result
