@@ -2,7 +2,6 @@ import json
 import numpy as np
 import os
 import argparse
-import itertools
 
 def load_data(in_file):
     with open(in_file, 'r') as f:
@@ -28,7 +27,7 @@ def evaluate_fit(h_vals, L_vals):
 
     return coeffs[0], ssr
 
-def extrapolate_for_config(L_dict, vF, num_states=10, max_search_depth=15):
+def extrapolate_for_config(L_dict, vF, num_states=10):
     """
     L_dict: dictionary mapping L_str -> list of dicts {"abs": ...}
     vF: Fermi velocity
@@ -37,74 +36,38 @@ def extrapolate_for_config(L_dict, vF, num_states=10, max_search_depth=15):
     if len(L_vals) < 3:
         return None
 
-    # Pre-calculate candidate h_j values for each L
-    # candidate_h[L][j] = h_value
-    candidate_h = {}
-    for L in L_vals:
-        lam_list = L_dict[str(L)]
-        lam0 = lam_list[0]['abs']
-
-        # Limit search depth per L to avoid combinatorial explosion
-        depth = min(max_search_depth, len(lam_list))
-        h_arr = []
-        for j in range(depth):
-            lamj = lam_list[j]['abs']
-            h_arr.append(compute_h(lam0, lamj, L, vF))
-        candidate_h[L] = h_arr
-
-    available_indices = {L: set(range(len(candidate_h[L]))) for L in L_vals}
-
     extracted_states = []
 
-    for state_idx in range(num_states):
-        best_fit = None
-        best_ssr = float('inf')
-        best_indices = None
+    for j in range(num_states):
+        h_vals = []
+        valid_Ls = []
 
-        # Build generator for all possible combinations of available indices
-        # To avoid massive loops, we can iterate over L and pick indices
-        # A simpler way: we assume h values don't cross wildly.
-        # We can just use itertools.product on the available indices
+        for L in L_vals:
+            lam_list = L_dict[str(L)]
+            if j < len(lam_list):
+                lam0 = lam_list[0]['abs']
+                lamj = lam_list[j]['abs']
+                h_vals.append(compute_h(lam0, lamj, L, vF))
+                valid_Ls.append(L)
 
-        # Actually, let's sort available indices by their h value so we prioritize lower h
-        lists_of_indices = [sorted(list(available_indices[L])) for L in L_vals]
-
-        for idx_combo in itertools.product(*lists_of_indices):
-            h_vals = [candidate_h[L][idx] for L, idx in zip(L_vals, idx_combo)]
-
-            # Simple heuristic: h shouldn't jump by more than ~1.0 between Ls
-            # This speeds up search drastically
-            if max(h_vals) - min(h_vals) > 2.0:
-                continue
-
-            h_extrap, ssr = evaluate_fit(h_vals, L_vals)
-
-            if ssr < best_ssr:
-                best_ssr = ssr
-                best_fit = h_extrap
-                best_indices = idx_combo
-
-        if best_indices is not None:
+        if len(valid_Ls) >= 3:
+            h_extrap, ssr = evaluate_fit(h_vals, valid_Ls)
             extracted_states.append({
-                "h_extrap": best_fit,
-                "ssr": best_ssr,
-                "indices": {L: idx for L, idx in zip(L_vals, best_indices)}
+                "h_extrap": h_extrap,
+                "ssr": ssr,
+                "j": j,
+                "Ls": valid_Ls
             })
-            # Remove used indices
-            for L, idx in zip(L_vals, best_indices):
-                available_indices[L].remove(idx)
-        else:
-            break
 
     return extracted_states
 
 def main():
-    parser = argparse.ArgumentParser(description="Extrapolate conformal dimensions for dense Kuperberg")
+    parser = argparse.ArgumentParser(description="Extrapolate conformal dimensions using strict rank-by-moduli")
     parser.add_argument('--vF', type=float, default=1.0, help="Fermi velocity to use for extrapolation")
     parser.add_argument('--type', type=str, default=None, help="Filter by matrix type (e.g. E+H)")
     parser.add_argument('--order', type=str, default=None, help="Filter by order (e.g. staggered)")
     parser.add_argument('--n', type=str, default=None, help="Filter by weight n (e.g. 1.0)")
-    parser.add_argument('--num_states', type=int, default=10, help="Number of conformal states to extract")
+    parser.add_argument('--num_states', type=int, default=20, help="Number of conformal states to extract")
     args = parser.parse_args()
 
     in_file = "experiment_outputs/denseKuperberg/eigenvalue_logs_top_k.json"
@@ -126,11 +89,11 @@ def main():
 
                 if results:
                     print(f"\nConfiguration: Type={t}, Order={order}, n={n_str}")
-                    print(f"{'State':<6} | {'Extrapolated h':<15} | {'SSR':<12} | {'Indices Used (L=' + ','.join(map(str, sorted([int(x) for x in L_dict.keys() if int(x)>=3]))) + ')'}")
-                    print("-" * 75)
-                    for i, res in enumerate(results):
-                        idx_str = str([res['indices'][L] for L in sorted(res['indices'].keys())])
-                        print(f"{i:<6} | {res['h_extrap']:<15.6f} | {res['ssr']:<12.2e} | {idx_str}")
+                    print(f"{'Index j':<7} | {'Extrapolated h':<15} | {'SSR':<12} | {'Evaluated Ls'}")
+                    print("-" * 65)
+                    for res in results:
+                        L_str = ",".join(map(str, res['Ls']))
+                        print(f"{res['j']:<7} | {res['h_extrap']:<15.6f} | {res['ssr']:<12.2e} | {L_str}")
 
 if __name__ == "__main__":
     main()
