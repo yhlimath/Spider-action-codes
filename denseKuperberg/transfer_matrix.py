@@ -1,6 +1,6 @@
 import numpy as np
 from denseKuperberg.states import generate_paths
-from denseKuperberg.algebra import action_E_i, action_H_i, action_T1_x_i, action_T2_x_i
+from denseKuperberg.algebra import action_E_i, action_H_i, action_T_xyz_i
 from sl3hecke.sl3_hecke import Polynomial
 
 def evaluate_coeff(coeff, n_value):
@@ -23,7 +23,7 @@ def apply_action(paths_with_coeffs, action_func, i, n_value):
                 result[p_tup] = result.get(p_tup, 0) + val
     return result
 
-def apply_T_i(coeff, path, i, type_str, n_value, x_value=None):
+def apply_T_i(coeff, path, i, type_str, n_value, x_value=None, y_value=None, z_value=None):
     base_state = [(coeff, path)]
     result = {}
 
@@ -31,13 +31,8 @@ def apply_T_i(coeff, path, i, type_str, n_value, x_value=None):
         for p, c in action_dict.items():
             result[p] = result.get(p, 0) + c
 
-    if type_str == 'T1(x)':
-        res = apply_action(base_state, lambda c, p, idx: action_T1_x_i(c, p, idx, x_value, n_value), i, n_value)
-        add_to_result(res)
-        return result
-
-    if type_str == 'T2(x)':
-        res = apply_action(base_state, lambda c, p, idx: action_T2_x_i(c, p, idx, x_value, n_value), i, n_value)
+    if type_str == 'T(x,y,z)':
+        res = apply_action(base_state, lambda c, p, idx: action_T_xyz_i(c, p, idx, x_value, y_value, z_value, n_value), i, n_value)
         add_to_result(res)
         return result
 
@@ -58,7 +53,7 @@ def apply_T_i(coeff, path, i, type_str, n_value, x_value=None):
 
     return result
 
-def apply_layer(state_dict, indices, type_str, n_value, x_value=None):
+def apply_layer(state_dict, indices, type_str, n_value, x_value=None, y_value=None, z_value=None):
     """
     Applies T_i for all i in indices sequentially to state_dict.
     state_dict is path_tuple -> coeff.
@@ -67,14 +62,14 @@ def apply_layer(state_dict, indices, type_str, n_value, x_value=None):
     for i in indices:
         next_state = {}
         for p_tup, c in current_state.items():
-            res = apply_T_i(c, list(p_tup), i, type_str, n_value, x_value)
+            res = apply_T_i(c, list(p_tup), i, type_str, n_value, x_value, y_value, z_value)
             for new_p, new_c in res.items():
                 if abs(new_c) > 1e-12:
                     next_state[new_p] = next_state.get(new_p, 0) + new_c
         current_state = next_state
     return current_state
 
-def build_transfer_matrix(L, x, y, type_str, order_str, n_value, x_value=None):
+def build_transfer_matrix(L, x, y, type_str, order_str, n_value, x_value=None, y_value=None, z_value=None):
     """
     Builds the dense transfer matrix.
     order_str: 'sequential' or 'staggered'
@@ -103,7 +98,7 @@ def build_transfer_matrix(L, x, y, type_str, order_str, n_value, x_value=None):
     for idx, p in enumerate(paths):
         state = {tuple(p): 1.0}
         for layer_indices in layers:
-            state = apply_layer(state, layer_indices, type_str, n_value, x_value)
+            state = apply_layer(state, layer_indices, type_str, n_value, x_value, y_value, z_value)
 
         for p_tup, c in state.items():
             if p_tup in path_to_idx:

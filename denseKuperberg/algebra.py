@@ -205,48 +205,29 @@ def action_TL_i(coeff, path, i):
     result = res_TLD[:]
     result.extend(res_TLI)
     return result
-def action_T1_x_i(coeff, path, i, x, n_value):
+def action_T_xyz_i(coeff, path, i, x, y, z, n_value):
     """
-    T_i = (I + TL_i) + x(E_i + H_i)
-    """
-    from sl3hecke.sl3_hecke import Polynomial
-
-    result = []
-
-    # (I + TL_i)
-    result.extend(action_ID_i(coeff, path, i))
-    result.extend(action_TL_i(coeff, path, i))
-
-    # x * (E_i + H_i)
-    if isinstance(coeff, Polynomial):
-        cx = coeff * x
-    else:
-        cx = coeff * x
-
-    result.extend(action_E_i(cx, path, i))
-    result.extend(action_H_i(cx, path, i))
-
-    return result
-
-def action_T2_x_i(coeff, path, i, x, n_value):
-    """
-    T_i = I + x(TL_i + E_i + H_i)
+    The universally parameterized action:
+    T_i(x,y,z) = x*I + y*TL_i + z*(E_i + H_i)
     """
     from sl3hecke.sl3_hecke import Polynomial
 
     result = []
 
-    # I
-    result.extend(action_ID_i(coeff, path, i))
+    # x * I
+    if x != 0:
+        cx = coeff * x if not isinstance(coeff, Polynomial) else coeff * x
+        result.extend(action_ID_i(cx, path, i))
 
-    # x * (TL_i + E_i + H_i)
-    if isinstance(coeff, Polynomial):
-        cx = coeff * x
-    else:
-        cx = coeff * x
+    # y * TL_i
+    if y != 0:
+        cy = coeff * y if not isinstance(coeff, Polynomial) else coeff * y
+        result.extend(action_TL_i(cy, path, i))
 
-    result.extend(action_TL_i(cx, path, i))
-    result.extend(action_E_i(cx, path, i))
-    result.extend(action_H_i(cx, path, i))
+    # z * (E_i + H_i)
+    if z != 0:
+        cz = coeff * z if not isinstance(coeff, Polynomial) else coeff * z
+        result.extend(action_E_i(cz, path, i))
+        result.extend(action_H_i(cz, path, i))
 
     return result
