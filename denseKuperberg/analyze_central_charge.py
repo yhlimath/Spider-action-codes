@@ -53,7 +53,7 @@ def plot_central_charge_extrapolations():
     out_dir = "experiment_outputs/denseKuperberg"
 
     for order in ['sequential', 'staggered']:
-        for t in ['E+H+H2', 'E+H']:
+        for t in [ 'E+H']:
             if t not in logs or order not in logs[t]: continue
 
             plt.figure(figsize=(10, 6))

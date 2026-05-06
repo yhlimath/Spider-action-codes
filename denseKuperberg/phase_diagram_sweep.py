@@ -6,6 +6,10 @@ import matplotlib.pyplot as plt
 from scipy.sparse.linalg import eigs
 from scipy.sparse.linalg import LinearOperator
 from scipy.linalg import eigvals
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from denseKuperberg.arnoldi import KuperbergArnoldiSolver
 
 def fit_f_L(L_vals, lam_vals):
