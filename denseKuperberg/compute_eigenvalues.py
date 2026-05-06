@@ -6,6 +6,9 @@ import argparse
 from scipy.sparse.linalg import eigs
 from scipy.sparse.linalg import LinearOperator
 from scipy.linalg import eigvals
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from denseKuperberg.arnoldi import KuperbergArnoldiSolver
 
 def get_n_values(config):
@@ -26,7 +29,7 @@ def compute_and_log():
     parser.add_argument('--L_max', type=int, default=6)
     parser.add_argument('--x_val', type=float, default=1.0)
     parser.add_argument('--y_val', type=float, default=1.0)
-    parser.add_argument('--z_val', type=float, default=1.0)
+    parser.add_argument('--z_val', type=float, default=0.0)
     args = parser.parse_args()
 
     L_list = [2, 3, 4, 5, 6]

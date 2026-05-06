@@ -4,7 +4,7 @@ import os
 import matplotlib.pyplot as plt
 
 def analyze_logs():
-    in_file = "experiment_outputs/denseKuperberg/eigenvalue_logs_top_k.json"
+    in_file = "experiment_outputs/denseKuperberg/eigenvalue_logs_top_k_T.json"
     if not os.path.exists(in_file):
         print(f"Log file {in_file} not found.")
         return
@@ -45,7 +45,7 @@ def analyze_logs():
                         pass
 
 def plot_central_charge_extrapolations():
-    in_file = "experiment_outputs/denseKuperberg/eigenvalue_logs_top_k.json"
+    in_file = "experiment_outputs/denseKuperberg/eigenvalue_logs_top_k_T.json"
     if not os.path.exists(in_file): return
     with open(in_file, 'r') as f:
         logs = json.load(f)
@@ -53,7 +53,7 @@ def plot_central_charge_extrapolations():
     out_dir = "experiment_outputs/denseKuperberg"
 
     for order in ['sequential', 'staggered']:
-        for t in [ 'E+H']:
+        for t in ['T(x,y,z)']:
             if t not in logs or order not in logs[t]: continue
 
             plt.figure(figsize=(10, 6))
