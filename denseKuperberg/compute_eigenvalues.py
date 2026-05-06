@@ -2,8 +2,10 @@ import numpy as np
 import json
 import os
 import time
+import argparse
 from scipy.sparse.linalg import eigs
 from scipy.sparse.linalg import LinearOperator
+from scipy.linalg import eigvals
 from denseKuperberg.arnoldi import KuperbergArnoldiSolver
 
 def get_n_values(config):
@@ -19,7 +21,16 @@ def get_n_values(config):
     return sorted(list(n_vals))
 
 def compute_and_log():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--operator', type=str, default='T', choices=['T', 'H'])
+    parser.add_argument('--L_max', type=int, default=6)
+    parser.add_argument('--x_val', type=float, default=1.0)
+    parser.add_argument('--y_val', type=float, default=1.0)
+    parser.add_argument('--z_val', type=float, default=1.0)
+    args = parser.parse_args()
+
     L_list = [2, 3, 4, 5, 6]
+    L_list = [L for L in L_list if L <= args.L_max]
 
     config = {
         'specific_values': [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0],
@@ -31,7 +42,7 @@ def compute_and_log():
     }
 
     n_values = get_n_values(config)
-    types = ['E+H+H2', 'E+H', 'H2']
+    types = ['T(x,y,z)']
     orders = ['sequential', 'staggered']
     x, y = 0, 0
     extract_top_k = 50
@@ -50,33 +61,46 @@ def compute_and_log():
                     start_time = time.time()
                     n_str = str(n)
 
-                    solver = KuperbergArnoldiSolver(L, x, y, type_str, order_str, n)
+                    solver = KuperbergArnoldiSolver(
+                        L, x, y, type_str, order_str, n,
+                        x_value=args.x_val, y_value=args.y_val, z_value=args.z_val, operator=args.operator
+                    )
 
                     top_eigenvalues = []
                     if solver.dim > 0:
                         if solver.dim <= extract_top_k:
-                            # For small dims, use standard dense eig
-                            from scipy.linalg import eigvals
                             H_matrix, _ = solver.arnoldi_iteration(solver.dim)
                             if H_matrix.shape[0] > 0:
                                 evs = eigvals(H_matrix)
                         else:
-                            # Use Implicitly Restarted Arnoldi for true extreme eigenvalues
-                            # We need ncv > k. scipy defaults to 2*k+1 or similar.
-                            # k cannot be >= dim-1.
                             k_actual = min(extract_top_k, solver.dim - 2)
                             if k_actual > 0:
                                 def matvec(v):
-                                    return solver.apply_T(v)
+                                    if args.operator == 'H':
+                                        return solver.apply_H(v)
+                                    else:
+                                        return solver.apply_T(v)
                                 A = LinearOperator((solver.dim, solver.dim), matvec=matvec, dtype=complex)
-                                evs, _ = eigs(A, k=k_actual, which='LM')
+
+                                # For Hamiltonian we usually want LR (largest real) if looking for ground states,
+                                # but for consistency with modulus let's use LM (largest magnitude)
+                                which_eig = 'LM'
+                                try:
+                                    evs, _ = eigs(A, k=k_actual, which=which_eig)
+                                except Exception:
+                                    evs = []
                             else:
                                 evs = []
 
                         if 'evs' in locals() and len(evs) > 0:
                             evs = [ev for ev in evs if abs(ev) > 1e-10]
                             if evs:
-                                evs.sort(key=lambda v: abs(v), reverse=True)
+                                # if operator == H, sort by real descending
+                                if args.operator == 'H':
+                                    evs.sort(key=lambda v: v.real, reverse=True)
+                                else:
+                                    evs.sort(key=lambda v: abs(v), reverse=True)
+
                                 for l in evs[:extract_top_k]:
                                     top_eigenvalues.append({
                                         "real": float(l.real),
@@ -91,7 +115,7 @@ def compute_and_log():
                     l0_str = f"{top_eigenvalues[0]['abs']:.4f}" if top_eigenvalues else "None"
                     print(f"  n={n:.4f}: dim={solver.dim}, elapsed={elapsed:.2f}s, top {len(top_eigenvalues)} evs, lambda_0={l0_str}")
 
-    with open(os.path.join(out_dir, "eigenvalue_logs_top_k.json"), 'w') as f:
+    with open(os.path.join(out_dir, f"eigenvalue_logs_top_k_{args.operator}.json"), 'w') as f:
         json.dump(logs, f, indent=2)
 
 if __name__ == "__main__":

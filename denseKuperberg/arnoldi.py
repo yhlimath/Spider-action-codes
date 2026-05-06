@@ -4,12 +4,15 @@ from denseKuperberg.states import generate_paths
 from denseKuperberg.transfer_matrix import apply_T_i
 
 class KuperbergArnoldiSolver:
-    def __init__(self, L, x, y, type_str, order_str, n_value, x_value=None):
+    def __init__(self, L, x, y, type_str, order_str, n_value, x_value=None, y_value=None, z_value=None, operator='T'):
         self.L = L
         self.type_str = type_str
         self.order_str = order_str
         self.n_value = n_value
         self.x_value = x_value
+        self.y_value = y_value
+        self.z_value = z_value
+        self.operator = operator
 
         self.basis_paths = generate_paths(L, x, y)
         self.dim = len(self.basis_paths)
@@ -33,7 +36,7 @@ class KuperbergArnoldiSolver:
         if key in self.cache:
             return self.cache[key]
 
-        res = apply_T_i(1.0, list(path_tuple), i, self.type_str, self.n_value, self.x_value)
+        res = apply_T_i(1.0, list(path_tuple), i, self.type_str, self.n_value, self.x_value, self.y_value, self.z_value)
 
         action_results = []
         for p, c in res.items():
@@ -70,6 +73,23 @@ class KuperbergArnoldiSolver:
             w = self.apply_layer(w, layer_indices)
         return w
 
+    def apply_H(self, v):
+        w = np.zeros(self.dim, dtype=complex)
+        indices = list(range(self.num_generators))
+
+        for i in indices:
+            for idx in range(self.dim):
+                coeff = v[idx]
+                if abs(coeff) < 1e-12:
+                    continue
+
+                path_tuple = tuple(self.basis_paths[idx])
+                res = self._get_T_i_action(path_tuple, i)
+
+                for c, target_idx in res:
+                    w[target_idx] += coeff * c
+        return w
+
     def arnoldi_iteration(self, k, start_vector=None):
         if self.dim == 0:
             return np.zeros((0, 0)), np.zeros((0, 0))
@@ -87,7 +107,10 @@ class KuperbergArnoldiSolver:
         Q[:, 0] = v
 
         for j in range(k):
-            v_next = self.apply_T(Q[:, j])
+            if self.operator == 'H':
+                v_next = self.apply_H(Q[:, j])
+            else:
+                v_next = self.apply_T(Q[:, j])
 
             for i in range(j + 1):
                 H[i, j] = np.vdot(Q[:, i], v_next)
