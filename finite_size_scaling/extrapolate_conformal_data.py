@@ -38,7 +38,7 @@ def scaling_model(L, A, B, C):
 def linear_model(inv_L, intercept, slope):
     return intercept + slope * inv_L
 
-def extrapolate_central_charge(data_by_L, operator="T"):
+def extrapolate_central_charge(data_by_L, operator="T", n_val=1.6180339887):
     L_list = []
     f_L_list = []
     lambda_0_dict = {}
@@ -85,12 +85,29 @@ def extrapolate_central_charge(data_by_L, operator="T"):
 
             f_inf = A
             f_sur = B / 2.0
-            vFc = - (24 * C) / np.pi
+
+            if operator == "T":
+                vFc = - (24 * C) / np.pi
+            else:
+                vFc = - (6 * C) / np.pi
+
+            # Exact central charge
+            g = 1 - np.arccos(n_val / 2.0) / np.pi
+            c_exact = 2 - 24 * ((1 - g)**2) / g
+
+            # Extract Fermi velocity v_F
+            v_F = vFc / c_exact if c_exact != 0 else float('inf')
+
+            if v_F == 0 or v_F == float('inf') or np.isnan(v_F):
+                print(f"Warning: Calculated v_F is {v_F}. Falling back to v_F = 1.0.")
+                v_F = 1.0
 
             results["fit_success"] = True
             results["f_inf"] = f_inf
             results["f_sur"] = f_sur
             results["vFc"] = vFc
+            results["c_exact"] = c_exact
+            results["v_F"] = v_F
             results["popt"] = list(popt)
         except Exception as e:
             print(f"Failed to fit central charge: {e}")
@@ -103,7 +120,7 @@ def extrapolate_central_charge(data_by_L, operator="T"):
 
 import itertools
 
-def extrapolate_conformal_dimensions(data_by_L, lambda_0_dict, top_k=5, operator="T"):
+def extrapolate_conformal_dimensions(data_by_L, lambda_0_dict, v_F=1.0, top_k=5, operator="T"):
     L_sorted = sorted(data_by_L.keys())
 
     # Pre-calculate all h_j(L) for each sector, L, and rank up to top_k + delta
@@ -135,9 +152,9 @@ def extrapolate_conformal_dimensions(data_by_L, lambda_0_dict, top_k=5, operator
                     lam_j = abs(eig)
                     if lam_j < 1e-12:
                         continue
-                    h_j = (L / np.pi) * np.log(lambda_0_mod / lam_j)
+                    h_j = (L / (np.pi * v_F)) * np.log(lambda_0_mod / lam_j)
                 else:
-                    h_j = (L / (2 * np.pi)) * (np.real(eig) - np.real(lambda_0_cplx))
+                    h_j = (L / (2 * np.pi * v_F)) * (np.real(eig) - np.real(lambda_0_cplx))
 
                 raw_h[sector][L][rank] = h_j
 
@@ -267,6 +284,8 @@ def export_outputs(cc_results, h_extrapolations, output_prefix):
         json_data["central_charge"]["f_inf"] = cc_results["f_inf"]
         json_data["central_charge"]["f_sur"] = cc_results["f_sur"]
         json_data["central_charge"]["vFc"] = cc_results["vFc"]
+        json_data["central_charge"]["c_exact"] = cc_results.get("c_exact")
+        json_data["central_charge"]["v_F"] = cc_results.get("v_F")
 
     for sector, ranks in h_extrapolations.items():
         json_data["conformal_dimensions"][sector] = {}
@@ -299,6 +318,8 @@ def export_outputs(cc_results, h_extrapolations, output_prefix):
             f.write(f"fInf = {cc_results['f_inf']};\n")
             f.write(f"fSur = {cc_results['f_sur']};\n")
             f.write(f"vFc = {cc_results['vFc']};\n")
+            f.write(f"cExact = {cc_results.get('c_exact', 0)};\n")
+            f.write(f"vF = {cc_results.get('v_F', 1.0)};\n")
 
         f.write("\n(* Conformal Dimensions h_j(L) vs L *)\n")
         for sector, ranks in h_extrapolations.items():
@@ -319,6 +340,7 @@ def main():
     parser.add_argument("-o", "--output_prefix", type=str, default="extrapolated", help="Prefix for output files")
     parser.add_argument("-k", "--top_k", type=int, default=50, help="Number of eigenvalues to track per sector")
     parser.add_argument("-O", "--operator", choices=["H", "T"], default="H", help="Operator to analyze (H or T)")
+    parser.add_argument("-n", "--n_val", type=float, default=1.6180339887, help="Loop weight n used to calculate exact central charge and v_F")
 
     args = parser.parse_args()
 
@@ -330,7 +352,7 @@ def main():
 
     print(f"Loaded data for L = {sorted(list(data_by_L.keys()))}")
 
-    cc_results = extrapolate_central_charge(data_by_L, args.operator)
+    cc_results = extrapolate_central_charge(data_by_L, operator=args.operator, n_val=args.n_val)
     print("\nCentral Charge Extrapolation:")
     print("-----------------------------")
     if not cc_results["L_values"]:
@@ -344,10 +366,13 @@ def main():
         print(f"\nf_inf = {cc_results['f_inf']:.6f}")
         print(f"f_sur = {cc_results['f_sur']:.6f}")
         print(f"v_F c = {cc_results['vFc']:.6f}")
+        print(f"c_exact = {cc_results['c_exact']:.6f}")
+        print(f"v_F = {cc_results['v_F']:.6f}")
     else:
         print("\nNot enough points (need at least 3) to extrapolate central charge.")
 
-    h_extrapolations = extrapolate_conformal_dimensions(data_by_L, cc_results["lambda_0"], top_k=args.top_k, operator=args.operator)
+    v_F = cc_results.get("v_F", 1.0)
+    h_extrapolations = extrapolate_conformal_dimensions(data_by_L, cc_results["lambda_0"], v_F=v_F, top_k=args.top_k, operator=args.operator)
     print("\nConformal Dimensions Extrapolation:")
     print("-----------------------------------")
     for sector, ranks in sorted(h_extrapolations.items()):
