@@ -32,7 +32,7 @@ def compute_and_log():
     parser.add_argument('--z_val', type=float, default=0.0)
     args = parser.parse_args()
 
-    L_list = [2, 3, 4, 5, 6]
+    L_list = [2, 3, 4, 5, 6, 7]
     L_list = [L for L in L_list if L <= args.L_max]
 
     config = {
