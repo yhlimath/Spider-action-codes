@@ -6,6 +6,8 @@ import argparse
 from scipy.sparse.linalg import eigs
 from scipy.sparse.linalg import LinearOperator
 from scipy.linalg import eigvals
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from denseKuperberg.zigzag import ZigzagArnoldiSolver
 
 def compute_and_log():
