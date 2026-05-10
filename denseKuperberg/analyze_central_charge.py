@@ -4,7 +4,7 @@ import os
 import matplotlib.pyplot as plt
 
 def analyze_logs():
-    in_file = "experiment_outputs/denseKuperberg/eigenvalue_logs_top_k.json"
+    in_file = "experiment_outputs/denseKuperberg/eigenvalue_logs_zigzag.json"
     if not os.path.exists(in_file):
         print(f"Log file {in_file} not found.")
         return
@@ -27,7 +27,7 @@ def analyze_logs():
                     if lam_list is not None and len(lam_list) > 0:
                         L = int(L_s)
                         lambda_abs = lam_list[0]['abs']
-                        f_L = - np.log(lambda_abs) / L
+                        f_L = (2/np.sqrt(3)) * np.log(lambda_abs) / L
                         L_vals.append(L)
                         f_L_vals.append(f_L)
 
@@ -66,7 +66,7 @@ def plot_central_charge_extrapolations():
                     if lam_list is not None and len(lam_list) > 0:
                         L = int(L_s)
                         lambda_abs = lam_list[0]['abs']
-                        f_L = - np.log(lambda_abs) / L
+                        f_L =  (2/np.sqrt(3)) * np.log(lambda_abs) / L
                         L_vals.append(L)
                         f_L_vals.append(f_L)
 

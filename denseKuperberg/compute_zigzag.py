@@ -18,7 +18,7 @@ def compute_and_log():
     L_list = [5, 8, 11]
     L_list = [L for L in L_list if L <= args.L_max]
 
-    n_values = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0]
+    n_values = [0.1 * i for i in range(1, 21)]
 
     x, y = 0, 0
     extract_top_k = 50
