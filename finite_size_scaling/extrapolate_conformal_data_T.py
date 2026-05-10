@@ -5,6 +5,8 @@ import argparse
 import numpy as np
 from scipy.optimize import curve_fit
 
+vf_0 = np.sqrt(2) / 3.0 #Fermi velocity for central charge zero
+
 def parse_complex(val):
     if isinstance(val, dict):
         return complex(val["re"], val["im"])
@@ -26,9 +28,9 @@ def load_data(file_paths):
             if L is None:
                 print(f"Warning: JSON {path} does not contain 'L'. Skipping.")
                 continue
-            if L % 3 != 0:
-                print(f"Warning: L={L} is not a multiple of 3 in {path}. Skipping.")
-                continue
+            #if L % 3 != 0: # Change: We can still use data from non-multiple-of-3 L for conformal dimension extrapolation, just not for central charge. So we won't skip them entirely.
+                #print(f"Warning: L={L} is not a multiple of 3 in {path}. Skipping.")
+                #continue
             data_by_L[L] = data
     return data_by_L
 
@@ -38,7 +40,7 @@ def scaling_model(L, A, B, C):
 def linear_model(inv_L, intercept, slope):
     return intercept + slope * inv_L
 
-def extrapolate_central_charge(data_by_L, operator="T"):
+def extrapolate_central_charge(data_by_L):
     L_list = []
     f_L_list = []
     lambda_0_dict = {}
@@ -58,13 +60,14 @@ def extrapolate_central_charge(data_by_L, operator="T"):
         # Lambda_0 is the eigenvalue with largest modulus
         lambda_0_cplx = max(vacuum_eigs, key=abs)
         lambda_0 = np.abs(lambda_0_cplx)
-        lambda_0_dict[L] = lambda_0_cplx
+        lambda_0_dict[L] = lambda_0
 
-        # Free energy f_L
-        if operator == "T":
-            f_L = np.log(lambda_0) / (3 * L)
-        else:
-            f_L = np.real(lambda_0_cplx) / (3 * L)
+        # Free energy f_L = 1/(3L) * ln |lambda_0| #Change: The log formula is for T
+
+        #f_L = np.log(lambda_0) / (L)
+
+        #The next formula is for H
+        f_L = -np.real(lambda_0) / (L)
 
         L_list.append(L)
         f_L_list.append(f_L)
@@ -100,155 +103,70 @@ def extrapolate_central_charge(data_by_L, operator="T"):
 
     return results
 
+def extrapolate_conformal_dimensions(data_by_L, lambda_0_dict, top_k=5):
+    # Calculate h_j(L) for all available points
+    h_data = {} # nested dict: h_data[sector][rank][L] = h_j
 
-import itertools
-
-def extrapolate_conformal_dimensions(data_by_L, lambda_0_dict, top_k=5, operator="T"):
     L_sorted = sorted(data_by_L.keys())
-
-    # Pre-calculate all h_j(L) for each sector, L, and rank up to top_k + delta
-    delta = 2
-    max_k_search = top_k + delta
-
-    # raw_h[sector][L][rank] = h_j value
-    raw_h = {}
 
     for L in L_sorted:
         if L not in lambda_0_dict:
             continue
 
-        lambda_0_cplx = lambda_0_dict[L]
-        lambda_0_mod = np.abs(lambda_0_cplx)
+        lambda_0 = lambda_0_dict[L]
         modules = data_by_L[L].get("modules", {})
 
         for sector, sector_data in modules.items():
-            if sector not in raw_h:
-                raw_h[sector] = {}
-            if L not in raw_h[sector]:
-                raw_h[sector][L] = {}
+            if sector not in h_data:
+                h_data[sector] = {}
 
             eigs = [parse_complex(e) for e in sector_data.get("eigenvalues", [])]
+            # Sort descending by modulus
             eigs_sorted = sorted(eigs, key=abs, reverse=True)
 
-            for rank, eig in enumerate(eigs_sorted[:max_k_search]):
-                if operator == "T":
-                    lam_j = abs(eig)
-                    if lam_j < 1e-12:
-                        continue
-                    h_j = (L / np.pi) * np.log(lambda_0_mod / lam_j)
-                else:
-                    h_j = (L / (2 * np.pi)) * (np.real(eig) - np.real(lambda_0_cplx))
+            for rank, eig in enumerate(eigs_sorted[:top_k]):
+                lam_j = abs(eig)
+                if lam_j < 1e-12:
+                    continue # avoid log(0) issues
 
-                raw_h[sector][L][rank] = h_j
+                h_j = (L /(np.pi * vf_0)) * np.log(lambda_0 / lam_j)
 
+                if rank not in h_data[sector]:
+                    h_data[sector][rank] = {}
+                h_data[sector][rank][L] = h_j
+
+    # Perform fits
     extrapolations = {}
-
-    for sector, L_data in raw_h.items():
+    for sector, ranks in h_data.items():
         extrapolations[sector] = {}
-        valid_Ls = sorted(L_data.keys())
-        if not valid_Ls:
-            continue
+        for rank, L_dict in ranks.items():
+            L_vals = sorted(L_dict.keys())
+            h_vals = [L_dict[L] for L in L_vals]
 
-        # We want to map target ranks 0 to top_k-1
-        # For a target rank `target_k`, candidate ranks for each L are in [target_k - delta, target_k + delta]
-
-        # Build list of all combinations up to top_k
-        # combination: (rank_L1, rank_L2, ...)
-        all_combinations = []
-
-        # Generate all valid candidate sequences for target ranks 0 to top_k-1
-        for target_k in range(top_k):
-            candidates_per_L = []
-            for L in valid_Ls:
-                valid_ranks_for_L = []
-                for r in range(max(0, target_k - delta), target_k + delta + 1):
-                    if r in L_data[L]:
-                        valid_ranks_for_L.append(r)
-                candidates_per_L.append(valid_ranks_for_L)
-
-            # Cartesian product
-            for seq in itertools.product(*candidates_per_L):
-                # seq is a tuple of ranks, e.g., (r1, r2, r3)
-                # Compute fit for this sequence
-                h_vals = [L_data[L][r] for L, r in zip(valid_Ls, seq)]
-
-                if len(valid_Ls) >= 2:
-                    inv_L = np.array([1.0 / L for L in valid_Ls])
-                    h_array = np.array(h_vals)
-                    try:
-                        popt, pcov = curve_fit(linear_model, inv_L, h_array)
-                        # SSR calculation
-                        residuals = h_array - linear_model(inv_L, *popt)
-                        ssr = np.sum(residuals**2)
-
-                        all_combinations.append({
-                            "target_k": target_k,
-                            "seq": seq,
-                            "h_vals": h_vals,
-                            "L_vals": valid_Ls,
-                            "h_inf": float(popt[0]),
-                            "slope": float(popt[1]),
-                            "ssr": float(ssr),
-                            "fit_success": True
-                        })
-                    except Exception:
-                        pass
-                elif len(valid_Ls) == 1:
-                    all_combinations.append({
-                        "target_k": target_k,
-                        "seq": seq,
-                        "h_vals": h_vals,
-                        "L_vals": valid_Ls,
-                        "h_inf": None,
-                        "slope": None,
-                        "ssr": 0.0,
-                        "fit_success": False
-                    })
-
-        # Sort combinations by SSR
-        all_combinations.sort(key=lambda x: x["ssr"])
-
-        assigned_combinations = []
-        used_L_ranks = {L: set() for L in valid_Ls}
-
-        # We need to pick one combination for each target_k in 0..top_k-1
-        # It's better to iterate target_k and find the best available, or just go greedy globally?
-        # Greedy globally is better to ensure the lowest error trajectories are locked in first.
-
-        assigned_target_ks = set()
-
-        for combo in all_combinations:
-            if combo["target_k"] in assigned_target_ks:
-                continue
-
-            # Check if any rank in this combo is already used
-            conflict = False
-            for L, r in zip(valid_Ls, combo["seq"]):
-                if r in used_L_ranks[L]:
-                    conflict = True
-                    break
-
-            if not conflict:
-                # Accept this combination
-                assigned_combinations.append(combo)
-                assigned_target_ks.add(combo["target_k"])
-                for L, r in zip(valid_Ls, combo["seq"]):
-                    used_L_ranks[L].add(r)
-
-            if len(assigned_target_ks) == top_k:
-                break
-
-        # Store in extrapolations dictionary
-        for combo in assigned_combinations:
-            extrapolations[sector][combo["target_k"]] = {
-                "L_vals": combo["L_vals"],
-                "h_vals": combo["h_vals"],
-                "h_inf": combo["h_inf"],
-                "slope": combo["slope"],
-                "fit_success": combo["fit_success"],
-                "seq": combo["seq"],
-                "ssr": combo["ssr"]
+            result = {
+                "L_vals": L_vals,
+                "h_vals": h_vals,
+                "h_inf": None,
+                "fit_success": False
             }
+
+            if len(L_vals) >= 2:
+                # Linear fit vs 1/L
+                inv_L = np.array([1.0 / L for L in L_vals])
+                h_array = np.array(h_vals)
+
+                try:
+                    popt, pcov = curve_fit(linear_model, inv_L, h_array)
+                    result["h_inf"] = float(popt[0])
+                    result["slope"] = float(popt[1])
+                    result["fit_success"] = True
+                except Exception as e:
+                    pass
+            elif len(L_vals) == 1:
+                # If only one point, we can't extrapolate, just record the value
+                pass
+
+            extrapolations[sector][rank] = result
 
     return extrapolations
 
@@ -317,8 +235,7 @@ def main():
     parser = argparse.ArgumentParser(description="Extrapolate central charge and conformal dimensions from eigenvalue JSON files.")
     parser.add_argument("input_jsons", nargs="+", help="Paths to JSON files (e.g., experiment_outputs/all_eigenvalues_L*.json)")
     parser.add_argument("-o", "--output_prefix", type=str, default="extrapolated", help="Prefix for output files")
-    parser.add_argument("-k", "--top_k", type=int, default=50, help="Number of eigenvalues to track per sector")
-    parser.add_argument("-O", "--operator", choices=["H", "T"], default="H", help="Operator to analyze (H or T)")
+    parser.add_argument("-k", "--top_k", type=int, default=None, help="Number of eigenvalues to track per sector")
 
     args = parser.parse_args()
 
@@ -330,7 +247,7 @@ def main():
 
     print(f"Loaded data for L = {sorted(list(data_by_L.keys()))}")
 
-    cc_results = extrapolate_central_charge(data_by_L, args.operator)
+    cc_results = extrapolate_central_charge(data_by_L)
     print("\nCentral Charge Extrapolation:")
     print("-----------------------------")
     if not cc_results["L_values"]:
@@ -347,7 +264,7 @@ def main():
     else:
         print("\nNot enough points (need at least 3) to extrapolate central charge.")
 
-    h_extrapolations = extrapolate_conformal_dimensions(data_by_L, cc_results["lambda_0"], top_k=args.top_k, operator=args.operator)
+    h_extrapolations = extrapolate_conformal_dimensions(data_by_L, cc_results["lambda_0"], top_k=args.top_k)
     print("\nConformal Dimensions Extrapolation:")
     print("-----------------------------------")
     for sector, ranks in sorted(h_extrapolations.items()):

@@ -6,10 +6,6 @@ import matplotlib.pyplot as plt
 from scipy.sparse.linalg import eigs
 from scipy.sparse.linalg import LinearOperator
 from scipy.linalg import eigvals
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from denseKuperberg.arnoldi import KuperbergArnoldiSolver
 
 def fit_f_L(L_vals, lam_vals, operator='T'):
@@ -33,11 +29,11 @@ def fit_f_L(L_vals, lam_vals, operator='T'):
 def sweep():
     parser = argparse.ArgumentParser()
     parser.add_argument('--n_val', type=float, default=1.0)
-    parser.add_argument('--z_val', type=float, default=0.0)
-    parser.add_argument('--x_start', type=float, default=0.5)
+    parser.add_argument('--z_val', type=float, default=1.0)
+    parser.add_argument('--x_start', type=float, default=0.1)
     parser.add_argument('--x_stop', type=float, default=2.0)
     parser.add_argument('--x_step', type=float, default=0.2)
-    parser.add_argument('--y_start', type=float, default=0.5)
+    parser.add_argument('--y_start', type=float, default=0.1)
     parser.add_argument('--y_stop', type=float, default=2.0)
     parser.add_argument('--y_step', type=float, default=0.2)
     parser.add_argument('--L_max', type=int, default=6)
