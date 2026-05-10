@@ -79,8 +79,14 @@ def plot_central_charge_extrapolations():
                     coeffs, _, _, _ = np.linalg.lstsq(X, y, rcond=None)
                     A, B, C = coeffs
 
-                    # Strictly plot f_L vs 1/L^2 as requested by user
-                    plt.plot(inv_L2, y, 'o-', label=f"n={n_str}")
+                                        # Strictly plot f_L vs 1/L^2 as requested by user
+                    p = plt.plot(inv_L2, y, 'o', label=f"n={n_str}")
+                    color = p[0].get_color()
+
+                    # Plot the fitted curve
+                    L_continuous = np.linspace(min(L_vals)*0.9, max(L_vals)*1.1, 100)
+                    y_fit = A + B/L_continuous + C/(L_continuous**2)
+                    plt.plot(1.0/(L_continuous**2), y_fit, '-', color=color, alpha=0.5)
 
             plt.title(f"Scaling $f_L$ vs $1/L^2$ | {t} | {order}")
             plt.xlabel("$1/L^2$")
