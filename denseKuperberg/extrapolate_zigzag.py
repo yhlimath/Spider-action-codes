@@ -2,6 +2,7 @@ import json
 import numpy as np
 import os
 import argparse
+import matplotlib.pyplot as plt
 
 def load_data(in_file):
     with open(in_file, 'r') as f:
@@ -23,10 +24,10 @@ def evaluate_fit(h_vals, L_vals):
         y_fit = X @ coeffs
         ssr = np.sum((y - y_fit)**2)
 
-    return coeffs[0], ssr
+    return coeffs[0], ssr, coeffs
 
 def extrapolate_for_config(L_dict, vF, num_states=10):
-    L_vals = sorted([int(L) for L in L_dict.keys() if L_dict[L] is not None])
+    L_vals = sorted([int(L) for L in L_dict.keys() if int(L) >= 3 and L_dict[L] is not None])
     if len(L_vals) < 3:
         return None
 
@@ -45,12 +46,14 @@ def extrapolate_for_config(L_dict, vF, num_states=10):
                 valid_Ls.append(L)
 
         if len(valid_Ls) >= 3:
-            h_extrap, ssr = evaluate_fit(h_vals, valid_Ls)
+            h_extrap, ssr, coeffs = evaluate_fit(h_vals, valid_Ls)
             extracted_states.append({
                 "h_extrap": h_extrap,
                 "ssr": ssr,
                 "j": j,
-                "Ls": valid_Ls
+                "Ls": valid_Ls,
+                "h_vals": h_vals,
+                "coeffs": coeffs
             })
 
     return extracted_states
@@ -60,6 +63,7 @@ def main():
     parser.add_argument('--vF', type=float, default=1.0)
     parser.add_argument('--n', type=str, default=None)
     parser.add_argument('--num_states', type=int, default=20)
+    parser.add_argument('--plot', action='store_true', help="Plot the extrapolated fits")
     args = parser.parse_args()
 
     in_file = "experiment_outputs/denseKuperberg/eigenvalue_logs_zigzag.json"
@@ -81,9 +85,35 @@ def main():
                     print(f"\nConfiguration: Zigzag Transfer Matrix, n={n_str}")
                     print(f"{'Index j':<7} | {'Extrapolated h':<15} | {'SSR':<12} | {'Evaluated Ls'}")
                     print("-" * 65)
+
+                    if args.plot:
+                        plt.figure(figsize=(10, 6))
+
                     for res in results:
                         L_str = ",".join(map(str, res['Ls']))
                         print(f"{res['j']:<7} | {res['h_extrap']:<15.6f} | {res['ssr']:<12.2e} | {L_str}")
+
+                        if args.plot and res['j'] < 5:  # Plot top 5
+                            h_vals = res['h_vals']
+                            L_vals = res['Ls']
+                            A, B, C = res['coeffs']
+
+                            inv_L2 = 1.0 / (np.array(L_vals)**2)
+                            p = plt.plot(inv_L2, h_vals, 'o', label=f"State {res['j']} (h={res['h_extrap']:.4f})")
+
+                            L_continuous = np.linspace(min(L_vals)*0.9, max(L_vals)*1.1, 100)
+                            h_fit = A + B/L_continuous + C/(L_continuous**2)
+                            plt.plot(1.0/(L_continuous**2), h_fit, '-', color=p[0].get_color(), alpha=0.5)
+
+                    if args.plot:
+                        plt.title(f"Conformal Dimension Fits | Zigzag | n={n_str}")
+                        plt.xlabel("$1/L^2$")
+                        plt.ylabel("$h_j(L)$")
+                        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+                        plt.grid(True)
+                        plt.tight_layout()
+                        plt.savefig(f"experiment_outputs/denseKuperberg/extrapolate_fit_zigzag_n{n_str}.png", dpi=150)
+                        plt.close()
 
 if __name__ == "__main__":
     main()
