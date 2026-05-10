@@ -93,7 +93,8 @@ def extrapolate_central_charge(data_by_L, operator="T", n_val=1.6180339887):
 
             # Exact central charge
             g = 1 - np.arccos(n_val / 2.0) / np.pi
-            c_exact = 2 - 24 * ((1 - g)**2) / g
+            c_exact = 1
+            #2 - 24 * ((1 - g)**2) / g
 
             # Extract Fermi velocity v_F
             v_F = vFc / c_exact if c_exact != 0 else float('inf')
@@ -340,7 +341,7 @@ def main():
     parser.add_argument("-o", "--output_prefix", type=str, default="extrapolated", help="Prefix for output files")
     parser.add_argument("-k", "--top_k", type=int, default=50, help="Number of eigenvalues to track per sector")
     parser.add_argument("-O", "--operator", choices=["H", "T"], default="H", help="Operator to analyze (H or T)")
-    parser.add_argument("-n", "--n_val", type=float, default=1.6180339887, help="Loop weight n used to calculate exact central charge and v_F")
+    parser.add_argument("-n", "--n_val", type=float, default=1.732, help="Loop weight n used to calculate exact central charge and v_F")
 
     args = parser.parse_args()
 
