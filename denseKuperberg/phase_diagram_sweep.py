@@ -31,19 +31,19 @@ def fit_f_L(L_vals, lam_vals, operator='T'):
 def sweep():
     parser = argparse.ArgumentParser()
     parser.add_argument('--n_val', type=float, default=1.0)
-    parser.add_argument('--z_val', type=float, default=0.0)
-    parser.add_argument('--x_start', type=float, default=0.1)
-    parser.add_argument('--x_stop', type=float, default=2.0)
-    parser.add_argument('--x_step', type=float, default=0.2)
-    parser.add_argument('--y_start', type=float, default=0.1)
-    parser.add_argument('--y_stop', type=float, default=2.0)
-    parser.add_argument('--y_step', type=float, default=0.2)
+    parser.add_argument('--z_val', type=float, default=1.0)
+    parser.add_argument('--x_start', type=float, default=0.01)
+    parser.add_argument('--x_stop', type=float, default=1.0)
+    parser.add_argument('--x_step', type=float, default=0.01)
+    parser.add_argument('--y_start', type=float, default=0.01)
+    parser.add_argument('--y_stop', type=float, default=1.0)
+    parser.add_argument('--y_step', type=float, default=0.01)
     parser.add_argument('--L_max', type=int, default=6)
     parser.add_argument('--operator', type=str, default='T')
     args = parser.parse_args()
 
-    L_list = [3, 4, 5, 6]
-    L_list = [L for L in L_list if L <= args.L_max]
+    L_list = [4,5,6,7]
+    #L_list = [L for L in L_list if L <= args.L_max]
 
     x_vals = np.arange(args.x_start, args.x_stop + args.x_step/2, args.x_step)
     y_vals = np.arange(args.y_start, args.y_stop + args.y_step/2, args.y_step)

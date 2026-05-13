@@ -6,6 +6,9 @@ import argparse
 from scipy.sparse.linalg import eigs
 from scipy.sparse.linalg import LinearOperator
 from scipy.linalg import eigvals
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from denseKuperberg.zigzag import ZigzagArnoldiSolver
 
 def compute_and_log():
@@ -14,12 +17,12 @@ def compute_and_log():
     args = parser.parse_args()
 
     L_list = [5, 8, 11]
-    L_list = [L for L in L_list if L <= args.L_max]
+    #L_list = [L for L in L_list if L <= args.L_max]
 
-    n_values = [0.1 * i for i in range(1, 21)]
-
+    n_values = [0.01 * i for i in range(1, 200)]
+    
     x, y = 0, 0
-    extract_top_k = 50
+    extract_top_k = 1
 
     out_dir = "experiment_outputs/denseKuperberg"
     os.makedirs(out_dir, exist_ok=True)
