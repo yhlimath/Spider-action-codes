@@ -67,7 +67,7 @@ def plot_central_charge_extrapolations():
                     if lam_list is not None and len(lam_list) > 0:
                         L = int(L_s)
                         lambda_abs = lam_list[0]['abs']
-                        f_L =  (2/np.sqrt(3)) * np.log(lambda_abs) / L
+                        f_L = - np.log(lambda_abs) / L
                         L_vals.append(L)
                         f_L_vals.append(f_L)
 

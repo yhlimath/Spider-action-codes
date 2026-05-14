@@ -16,13 +16,13 @@ def compute_and_log():
     parser.add_argument('--L_max', type=int, default=11)
     args = parser.parse_args()
 
-    L_list = [5, 8, 11]
+    L_list = [8]
     #L_list = [L for L in L_list if L <= args.L_max]
 
     n_values = [0.01 * i for i in range(1, 200)]
     
     x, y = 0, 0
-    extract_top_k = 1
+    extract_top_k = 50
 
     out_dir = "experiment_outputs/denseKuperberg"
     os.makedirs(out_dir, exist_ok=True)

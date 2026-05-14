@@ -6,6 +6,10 @@ import argparse
 from scipy.sparse.linalg import eigs
 from scipy.sparse.linalg import LinearOperator
 from scipy.linalg import eigvals
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 from denseKuperberg.arnoldi import KuperbergArnoldiSolver
 
 def get_n_values(config):
@@ -25,25 +29,25 @@ def compute_and_log():
     parser.add_argument('--operator', type=str, default='T', choices=['T', 'H'])
     parser.add_argument('--L_max', type=int, default=6)
     parser.add_argument('--x_val', type=float, default=1.0)
-    parser.add_argument('--y_val', type=float, default=1.0)
+    parser.add_argument('--y_val', type=float, default=0.32)
     parser.add_argument('--z_val', type=float, default=1.0)
     args = parser.parse_args()
 
-    L_list = [2, 3, 4, 5, 6]
-    L_list = [L for L in L_list if L <= args.L_max]
+    L_list = [4,5,6,7,8,9,10]
+    #L_list = [L for L in L_list if L <= args.L_max]
 
     config = {
-        'specific_values': [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0],
-        'sweep': {
-            'start': 0.5,
-            'stop': 2.0,
-            'step': 0.25
-        }
+        'specific_values': [1.0]
     }
-
+    #,
+    #    'sweep': {
+    #        'start': 0.5,
+    #        'stop': 2.0,
+    #        'step': 0.25
+    #    }
     n_values = get_n_values(config)
     types = ['T(x,y,z)']
-    orders = ['sequential', 'staggered']
+    orders = ['staggered']
     x, y = 0, 0
     extract_top_k = 50
 

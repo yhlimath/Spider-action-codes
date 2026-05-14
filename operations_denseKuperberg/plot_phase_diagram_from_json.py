@@ -74,7 +74,7 @@ def parse_args() -> argparse.Namespace:
         default="contour",
         help="Use filled contours or a cell heatmap.",
     )
-    parser.add_argument("--levels", type=int, default=50, help="Number of contour levels.")
+    parser.add_argument("--levels", type=int, default=70, help="Number of contour levels.")
     parser.add_argument("--cmap", help="Matplotlib colormap name.")
     parser.add_argument(
         "--desaturate",
@@ -82,13 +82,13 @@ def parse_args() -> argparse.Namespace:
         default=0.45,
         help="Desaturate the colormap by this fraction; 0 keeps original colors, 1 is grayscale.",
     )
-    parser.add_argument("--dpi", type=int, default=200, help="Output image DPI.")
+    parser.add_argument("--dpi", type=int, default=400, help="Output image DPI.")
     parser.add_argument("--title", help="Custom plot title.")
     parser.add_argument(
         "--critical-levels",
         nargs="*",
         type=float,
-        default=(0.0, 0.8),
+        default=(0.0, 10.0, 12.0,14.0, 18.0),
         help="Central-charge contour levels to emphasize when plotting central_charge.",
     )
     parser.add_argument(
