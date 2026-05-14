@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from denseKuperberg.states import generate_paths
 from denseKuperberg.algebra import action_E_i, action_H_i
 
@@ -5,7 +8,7 @@ def print_path(path):
     return "[" + ", ".join([f"({s:2}, {j:2})" for s, j in path]) + "]"
 
 def main():
-    L = 3
+    L = 8
     x, y = 0, 0
     print(f"Generating paths for L={L}, x={x}, y={y}...")
     paths = generate_paths(L, x, y)
